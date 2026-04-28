@@ -798,7 +798,7 @@ function Allocation({ engineers, tasks, projects }) {
 }
 
 // ─── Productivity ─────────────────────────────────────────────────────────────
-function Productivity({ productivity, tasks, engineers, setProductivity, showToast }) {
+function Productivity({ productivity, tasks, engineers, projects, setProductivity, showToast }) {
   const [editing, setEditing] = useState(null);
 
   const getEngineerProductivity = (eng) => {
