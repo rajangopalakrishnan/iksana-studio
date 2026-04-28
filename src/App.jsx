@@ -212,7 +212,7 @@ export default function IksanaApp() {
 
       {/* Main */}
       <div style={{ marginLeft: 220, minHeight: "100vh" }}>
-        <div style={{ padding: "24px 28px", maxWidth: 1400 }}>
+        <div style={{ padding: "24px 28px", maxWidth: 1400, width: "100%", margin: "0 auto" }}>
           {tab === "dashboard" && <Dashboard engineers={engineers} projects={projects} tasks={tasks} setTab={setTab} />}
           {tab === "tasks" && <Tasks tasks={tasks} engineers={engineers} projects={projects} setTasks={v => persist(KEYS.tasks, setTasks, v)} showToast={showToast} />}
           {tab === "engineers" && <Engineers engineers={engineers} tasks={tasks} setEngineers={v => persist(KEYS.engineers, setEngineers, v)} showToast={showToast} />}
