@@ -219,7 +219,7 @@ export default function IksanaApp() {
           {tab === "projects" && <Projects projects={projects} tasks={tasks} engineers={engineers} setProjects={v => persist(KEYS.projects, setProjects, v)} showToast={showToast} />}
           {tab === "allocation" && <Allocation engineers={engineers} tasks={tasks} projects={projects} />}
           {tab === "attendance" && <Attendance engineers={engineers} attendance={attendance} leaves={leaves} setAttendance={v => persist(KEYS.attendance, setAttendance, v)} setLeaves={v => persist(KEYS.leaves, setLeaves, v)} showToast={showToast} />}
-          {tab === "productivity" && <Productivity productivity={productivity} tasks={tasks} engineers={engineers} setProductivity={v => persist(KEYS.productivity, setProductivity, v)} showToast={showToast} />}
+          {tab === "productivity" && <Productivity productivity={productivity} tasks={tasks} engineers={engineers} projects={projects} setProductivity={v => persist(KEYS.productivity, setProductivity, v)} showToast={showToast} />}
           {tab === "reports" && <Reports engineers={engineers} projects={projects} tasks={tasks} attendance={attendance} leaves={leaves} />}
           {tab === "notifications" && <Notifications tasks={tasks} projects={projects} engineers={engineers} leaves={leaves} dismissed={dismissed} setDismissed={v => persist(KEYS.dismissed, setDismissed, v)} setTab={setTab} />}
           {tab === "export" && <Export tasks={tasks} projects={projects} engineers={engineers} attendance={attendance} leaves={leaves} />}
