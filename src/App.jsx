@@ -51,11 +51,11 @@ async function save(key, val) {
 
 // ─── Seed Data ──────────────────────────────────────────────────────────────
 const SEED_ENGINEERS = [
-  { id: "e1", name: "Arun Kumar", role: "BIM Manager", location: "office", rate: 850, active: true, email: "arun.kumar@iksana.com" },
-  { id: "e2", name: "Priya Nair", role: "Senior Architect", location: "office", rate: 750, active: true, email: "priya.nair@iksana.com" },
-  { id: "e3", name: "Rahul Sharma", role: "BIM Coordinator", location: "remote", rate: 650, active: true, email: "rahul.sharma@iksana.com" },
-  { id: "e4", name: "Divya Menon", role: "Interior Designer", location: "remote", rate: 600, active: true, email: "divya.menon@iksana.com" },
-  { id: "e5", name: "Kiran Reddy", role: "Revit Modeller", location: "office", rate: 500, active: true, email: "kiran.reddy@iksana.com" },
+  { id: "e1", name: "Arun Kumar", role: "Director", location: "office", rate: 850, active: true, email: "arun.kumar@iksana.com" },
+  { id: "e2", name: "Priya Nair", role: "Co-ordinator", location: "office", rate: 750, active: true, email: "priya.nair@iksana.com" },
+  { id: "e3", name: "Rahul Sharma", role: "Sr. Tech Designer", location: "remote", rate: 650, active: true, email: "rahul.sharma@iksana.com" },
+  { id: "e4", name: "Divya Menon", role: "CAD Mid-Level", location: "remote", rate: 600, active: true, email: "divya.menon@iksana.com" },
+  { id: "e5", name: "Kiran Reddy", role: "CAD-Junior Level", location: "office", rate: 500, active: true, email: "kiran.reddy@iksana.com" },
   { id: "e6", name: "Ananya Singh", role: "QS Estimator", location: "remote", rate: 580, active: true, email: "ananya.singh@iksana.com" },
   { id: "e7", name: "Vijay Thomas", role: "Revit Modeller", location: "office", rate: 500, active: true, email: "vijay.thomas@iksana.com" },
   { id: "e8", name: "Meera Pillai", role: "Drafting Engineer", location: "remote", rate: 450, active: true, email: "meera.pillai@iksana.com" },
