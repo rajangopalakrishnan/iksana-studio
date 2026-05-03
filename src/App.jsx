@@ -577,8 +577,7 @@ function Engineers({ engineers, tasks, setEngineers, showToast }) {
                   </div>
                 ))}
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <div style={{ fontSize: 12, color: "#64748b" }}>₹{eng.rate}/day</div>
+              <div style={{ display: "flex", justifyContent: "flex-end", alignItems: "center" }}>
                 <div style={{ display: "flex", gap: 6 }}>
                   <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 11 }} onClick={() => { setEditing(eng); setShowForm(true); }}>Edit</button>
                   <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 11 }} onClick={() => { setEngineers(engineers.map(e => e.id === eng.id ? { ...e, active: !e.active } : e)); }}>
@@ -614,7 +613,6 @@ function EngineerForm({ engineer, onSave, onClose }) {
         <div className="form-row"><label>Role</label><select value={d.role} onChange={e => set("role", e.target.value)}><option value="">Select role</option>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
         <div className="form-row"><label>Location</label><select value={d.location} onChange={e => set("location", e.target.value)}><option value="office">Office</option><option value="remote">Remote</option></select></div>
         <div className="form-row"><label>Email</label><input type="email" value={d.email} onChange={e => set("email", e.target.value)} /></div>
-        <div className="form-row"><label>Day Rate (₹)</label><input type="number" value={d.rate} onChange={e => set("rate", Number(e.target.value))} /></div>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
         <button className="btn btn-primary" onClick={() => onSave(d)}>Save</button>
