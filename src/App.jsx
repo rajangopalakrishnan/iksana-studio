@@ -51,14 +51,14 @@ async function save(key, val) {
 
 // ─── Seed Data ──────────────────────────────────────────────────────────────
 const SEED_ENGINEERS = [
-  { id: "e1", name: "Arun Kumar", role: "BIM Manager", location: "office", rate: 850, active: true },
-  { id: "e2", name: "Priya Nair", role: "Senior Architect", location: "office", rate: 750, active: true },
-  { id: "e3", name: "Rahul Sharma", role: "BIM Coordinator", location: "remote", rate: 650, active: true },
-  { id: "e4", name: "Divya Menon", role: "Interior Designer", location: "remote", rate: 600, active: true },
-  { id: "e5", name: "Kiran Reddy", role: "Revit Modeller", location: "office", rate: 500, active: true },
-  { id: "e6", name: "Ananya Singh", role: "QS Estimator", location: "remote", rate: 580, active: true },
-  { id: "e7", name: "Vijay Thomas", role: "Revit Modeller", location: "office", rate: 500, active: true },
-  { id: "e8", name: "Meera Pillai", role: "Drafting Engineer", location: "remote", rate: 450, active: true },
+  { id: "e1", name: "Arun Kumar", role: "BIM Manager", location: "office", rate: 850, active: true, email: "arun.kumar@iksana.com" },
+  { id: "e2", name: "Priya Nair", role: "Senior Architect", location: "office", rate: 750, active: true, email: "priya.nair@iksana.com" },
+  { id: "e3", name: "Rahul Sharma", role: "BIM Coordinator", location: "remote", rate: 650, active: true, email: "rahul.sharma@iksana.com" },
+  { id: "e4", name: "Divya Menon", role: "Interior Designer", location: "remote", rate: 600, active: true, email: "divya.menon@iksana.com" },
+  { id: "e5", name: "Kiran Reddy", role: "Revit Modeller", location: "office", rate: 500, active: true, email: "kiran.reddy@iksana.com" },
+  { id: "e6", name: "Ananya Singh", role: "QS Estimator", location: "remote", rate: 580, active: true, email: "ananya.singh@iksana.com" },
+  { id: "e7", name: "Vijay Thomas", role: "Revit Modeller", location: "office", rate: 500, active: true, email: "vijay.thomas@iksana.com" },
+  { id: "e8", name: "Meera Pillai", role: "Drafting Engineer", location: "remote", rate: 450, active: true, email: "meera.pillai@iksana.com" },
 ];
 
 const SEED_PROJECTS = [
@@ -564,6 +564,7 @@ function Engineers({ engineers, tasks, setEngineers, showToast }) {
                   </div>
                   <div style={{ fontWeight: 600, fontSize: 14 }}>{eng.name}</div>
                   <div style={{ fontSize: 12, color: "#64748b" }}>{eng.role}</div>
+                  <div style={{ fontSize: 12, color: "#94a3b8", marginTop: 4 }}>{eng.email || "No email provided"}</div>
                 </div>
                 <div style={{ display: "flex", gap: 6 }}>
                   <span className="tag" style={{ background: eng.location === "remote" ? "#f59e0b22" : "#10b98122", color: eng.location === "remote" ? "#f59e0b" : "#10b981" }}>{eng.location}</span>
@@ -604,7 +605,7 @@ function Engineers({ engineers, tasks, setEngineers, showToast }) {
 }
 
 function EngineerForm({ engineer, onSave, onClose }) {
-  const [d, setD] = useState(engineer || { name: "", role: "", location: "office", rate: "" });
+  const [d, setD] = useState(engineer || { name: "", role: "", location: "office", rate: "", email: "" });
   const set = (k, v) => setD(p => ({ ...p, [k]: v }));
   const ROLES = ["BIM Manager", "Senior Architect", "BIM Coordinator", "Interior Designer", "Revit Modeller", "QS Estimator", "Drafting Engineer", "4D Planner"];
   return (
@@ -613,6 +614,7 @@ function EngineerForm({ engineer, onSave, onClose }) {
       <div className="form-grid">
         <div className="form-row"><label>Role</label><select value={d.role} onChange={e => set("role", e.target.value)}><option value="">Select role</option>{ROLES.map(r => <option key={r} value={r}>{r}</option>)}</select></div>
         <div className="form-row"><label>Location</label><select value={d.location} onChange={e => set("location", e.target.value)}><option value="office">Office</option><option value="remote">Remote</option></select></div>
+        <div className="form-row"><label>Email</label><input type="email" value={d.email} onChange={e => set("email", e.target.value)} /></div>
         <div className="form-row"><label>Day Rate (₹)</label><input type="number" value={d.rate} onChange={e => set("rate", Number(e.target.value))} /></div>
       </div>
       <div style={{ display: "flex", gap: 8 }}>
