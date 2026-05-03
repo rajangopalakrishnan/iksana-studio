@@ -56,7 +56,6 @@ const SEED_ENGINEERS = [
   { id: "e3", name: "Rahul Sharma", role: "Sr. Tech Designer", location: "remote", rate: 650, active: true, email: "rahul.sharma@iksana.com" },
   { id: "e4", name: "Divya Menon", role: "CAD Mid-Level", location: "remote", rate: 600, active: true, email: "divya.menon@iksana.com" },
   { id: "e5", name: "Kiran Reddy", role: "CAD-Junior Level", location: "office", rate: 500, active: true, email: "kiran.reddy@iksana.com" },
-  { id: "e6", name: "Ananya Singh", role: "QS Estimator", location: "remote", rate: 580, active: true, email: "ananya.singh@iksana.com" },
   { id: "e7", name: "Vijay Thomas", role: "Revit Modeller", location: "office", rate: 500, active: true, email: "vijay.thomas@iksana.com" },
   { id: "e8", name: "Meera Pillai", role: "Drafting Engineer", location: "remote", rate: 450, active: true, email: "meera.pillai@iksana.com" },
 ];
@@ -607,7 +606,7 @@ function Engineers({ engineers, tasks, setEngineers, showToast }) {
 function EngineerForm({ engineer, onSave, onClose }) {
   const [d, setD] = useState(engineer || { name: "", role: "", location: "office", rate: "", email: "" });
   const set = (k, v) => setD(p => ({ ...p, [k]: v }));
-  const ROLES = ["BIM Manager", "Senior Architect", "BIM Coordinator", "Interior Designer", "Revit Modeller", "QS Estimator", "Drafting Engineer", "4D Planner"];
+  const ROLES = ["Director", "Co-ordinator", "Sr. Tech Designer", "CAD Mid-Level", "CAD-Junior Level", "Revit Modeller", "Drafting Engineer", "4D Planner"];
   return (
     <>
       <div className="form-row"><label>Full Name</label><input value={d.name} onChange={e => set("name", e.target.value)} /></div>
