@@ -51,13 +51,17 @@ async function save(key, val) {
 
 // ─── Seed Data ──────────────────────────────────────────────────────────────
 const SEED_ENGINEERS = [
-  { id: "e1", name: "Arun Kumar", role: "Director", location: "office", rate: 850, active: true, email: "arun.kumar@iksana.com" },
-  { id: "e2", name: "Priya Nair", role: "Co-ordinator", location: "office", rate: 750, active: true, email: "priya.nair@iksana.com" },
-  { id: "e3", name: "Rahul Sharma", role: "Sr. Tech Designer", location: "remote", rate: 650, active: true, email: "rahul.sharma@iksana.com" },
-  { id: "e4", name: "Divya Menon", role: "CAD Mid-Level", location: "remote", rate: 600, active: true, email: "divya.menon@iksana.com" },
-  { id: "e5", name: "Kiran Reddy", role: "CAD-Junior Level", location: "office", rate: 500, active: true, email: "kiran.reddy@iksana.com" },
-  { id: "e7", name: "Vijay Thomas", role: "Revit Modeller", location: "office", rate: 500, active: true, email: "vijay.thomas@iksana.com" },
-  { id: "e8", name: "Meera Pillai", role: "Drafting Engineer", location: "remote", rate: 450, active: true, email: "meera.pillai@iksana.com" },
+  { id: "e1", name: "Rajan Gopalakrishnan", role: "Director", location: "office", active: true, email: "rg@iksana.tech" },
+  { id: "e2", name: "Nisanth P", role: "Director", location: "office", active: true, email: "np@iksana.tech" },
+  { id: "e3", name: "Biburaj", role: "Co-Ordinator", location: "office", active: true, email: "btp@iksana.tech" },
+  { id: "e4", name: "Baburaj", role: "Sr. Tech Designer", location: "office", active: true, email: "baburaj.tc@iksana.tech" },
+  { id: "e5", name: "Akheel", role: "CAD Mid-Level", location: "office", active: true, email: "akheel.a@iksana.tech" },
+  { id: "e6", name: "Shaheeb", role: "CAD Mid-Level", location: "office", active: true, email: "sheheeb.uk@iksana.tech" },
+  { id: "e7", name: "Devi Krishna", role: "CAD Mid-Level", location: "office", active: true, email: "devikrishna.u@iksana.tech" },
+  { id: "e8", name: "Atheesh", role: "CAD Mid-Level", location: "office", active: true, email: "athish.tm@iksana.tech" },
+  { id: "e9", name: "Sreekumar", role: "CAD Mid-Level", location: "office", active: true, email: "sreekumar.mp@iksana.tech" },
+  { id: "e10", name: "Anjana. T A", role: "CAD Junior Level", location: "office", active: true, email: "anjana.ta@iksana.tech" },
+  { id: "e11", name: "Anjitha", role: "CAD Junior Level", location: "office", active: true, email: "anjana.ta@iksana.tech" },
 ];
 
 const SEED_PROJECTS = [
@@ -243,7 +247,7 @@ function Dashboard({ engineers, projects, tasks, setTab }) {
   const totalBudget = projects.reduce((s, p) => s + p.budget, 0);
   const costToDate = tasks.reduce((s, t) => {
     const eng = engineers.find(e => e.id === t.assignee);
-    return s + (eng ? (t.loggedHours * (eng.rate / 8)) : 0);
+    return s + (eng ? 0 : 0);
   }, 0);
   const overdueTasks = tasks.filter(t => t.status !== "completed" && new Date(t.dueDate) < new Date());
 
@@ -603,7 +607,7 @@ function Engineers({ engineers, tasks, setEngineers, showToast }) {
 }
 
 function EngineerForm({ engineer, onSave, onClose }) {
-  const [d, setD] = useState(engineer || { name: "", role: "", location: "office", rate: "", email: "" });
+  const [d, setD] = useState(engineer || { name: "", role: "", location: "office", email: "" });
   const set = (k, v) => setD(p => ({ ...p, [k]: v }));
   const ROLES = ["Director", "Co-ordinator", "Sr. Tech Designer", "CAD Mid-Level", "CAD-Junior Level", "Revit Modeller", "Drafting Engineer", "4D Planner"];
   return (
@@ -650,7 +654,7 @@ function Projects({ projects, tasks, engineers, setProjects, showToast }) {
               const done = ptasks.filter(t => t.status === "completed").length;
               const cost = ptasks.reduce((s, t) => {
                 const eng = engineers.find(e => e.id === t.assignee);
-                return s + (eng ? t.loggedHours * (eng.rate / 8) : 0);
+                return s + (eng ? 0 : 0);
               }, 0);
               return (
                 <tr key={p.id}>
@@ -804,7 +808,7 @@ function Productivity({ productivity, tasks, engineers, projects, setProductivit
     const myTasks = tasks.filter(t => t.assignee === eng.id && t.status === "completed");
     const totalHours = myTasks.reduce((s, t) => s + t.loggedHours, 0);
     const totalDays = totalHours / 8;
-    return { tasks: myTasks.length, hours: totalHours, days: totalDays.toFixed(1), cost: eng.rate * totalDays };
+    return { tasks: myTasks.length, hours: totalHours, days: totalDays.toFixed(1), cost: 0 };
   };
 
   return (
