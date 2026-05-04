@@ -9,6 +9,8 @@ const KEYS = {
   attendance: "iksana:attendance",
   leaves: "iksana:leaves",
   dismissed: "iksana:dismissed",
+  users: "iksana:users",
+  currentUser: "iksana:currentUser",
 };
 
 // ─── Seed Attendance ─────────────────────────────────────────────────────────
@@ -94,6 +96,11 @@ const SEED_PRODUCTIVITY = {
   "Drafting": { unit: "sheets/day", rate: 5 },
 };
 
+const SEED_USERS = [
+  { id: "admin", name: "Administrator", email: "admin@iksana.tech", role: "admin", password: "admin" },
+  ...SEED_ENGINEERS.map(e => ({ id: e.id, name: e.name, email: e.email, role: "user", password: "user" })),
+];
+
 // ─── Utilities ───────────────────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2, 9);
 const fmt = (n) => new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 }).format(n);
@@ -112,6 +119,8 @@ export default function IksanaApp() {
   const [attendance, setAttendance] = useState([]);
   const [leaves, setLeaves] = useState([]);
   const [dismissed, setDismissed] = useState([]);
+  const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(null);
   const [toast, setToast] = useState(null);
@@ -119,7 +128,7 @@ export default function IksanaApp() {
 
   useEffect(() => {
     (async () => {
-      const [eng, proj, tsk, prod, att, lvs, dis] = await Promise.all([
+      const [eng, proj, tsk, prod, att, lvs, dis, usr, cur] = await Promise.all([
         load(KEYS.engineers, SEED_ENGINEERS),
         load(KEYS.projects, SEED_PROJECTS),
         load(KEYS.tasks, SEED_TASKS),
@@ -127,9 +136,11 @@ export default function IksanaApp() {
         load(KEYS.attendance, SEED_ATTENDANCE),
         load(KEYS.leaves, SEED_LEAVES),
         load(KEYS.dismissed, []),
+        load(KEYS.users, SEED_USERS),
+        load(KEYS.currentUser, null),
       ]);
       setEngineers(eng); setProjects(proj); setTasks(tsk); setProductivity(prod);
-      setAttendance(att); setLeaves(lvs); setDismissed(dis);
+      setAttendance(att); setLeaves(lvs); setDismissed(dis); setUsers(usr); setCurrentUser(cur);
       setLoading(false);
     })();
   }, []);
@@ -137,6 +148,11 @@ export default function IksanaApp() {
   const persist = useCallback(async (key, setter, val) => {
     setter(val);
     await save(key, val);
+  }, []);
+
+  const persistUser = useCallback(async (user) => {
+    setCurrentUser(user);
+    await save(KEYS.currentUser, user);
   }, []);
 
   const showToast = (msg, type = "success") => {
@@ -149,6 +165,8 @@ export default function IksanaApp() {
       Loading Iksana Studio…
     </div>
   );
+
+  if (!currentUser) return <Login onLogin={persistUser} users={users} />;
 
   return (
     <div style={{ fontFamily: "'Sora', 'DM Sans', sans-serif", background: "#0c0e14", minHeight: "100vh", color: "#e2e8f0" }}>
@@ -189,7 +207,7 @@ export default function IksanaApp() {
           <div style={{ fontSize: 11, color: "#4a5568", marginTop: 2 }}>Studio Management</div>
         </div>
         <div style={{ flex: 1, padding: "8px 8px", display: "flex", flexDirection: "column", gap: 2 }}>
-          {[
+          {(currentUser.role === "admin" ? [
             { id: "dashboard", icon: "⬡", label: "Dashboard" },
             { id: "tasks", icon: "◈", label: "Tasks", badge: tasks.filter(t => t.status === "in-progress").length },
             { id: "engineers", icon: "◉", label: "Engineers" },
@@ -200,7 +218,12 @@ export default function IksanaApp() {
             { id: "reports", icon: "◳", label: "Reports" },
             { id: "notifications", icon: "◐", label: "Alerts", badge: computeAlerts(tasks, projects, engineers, leaves, dismissed).filter(a => a.severity === "critical").length },
             { id: "export", icon: "◧", label: "Export" },
-          ].map(item => (
+          ] : [
+            { id: "dashboard", icon: "⬡", label: "Dashboard" },
+            { id: "tasks", icon: "◈", label: "My Tasks", badge: tasks.filter(t => t.assignee === currentUser.id && t.status === "in-progress").length },
+            { id: "attendance", icon: "◷", label: "Attendance" },
+            { id: "notifications", icon: "◐", label: "Alerts", badge: computeAlerts(tasks, projects, engineers, leaves, dismissed).filter(a => a.severity === "critical" && (a.assignee === currentUser.name || !a.assignee)).length },
+          ]).map(item => (
             <div key={item.id} className={`nav-item ${tab === item.id ? "active" : ""}`} onClick={() => setTab(item.id)}>
               <span style={{ fontSize: 16 }}>{item.icon}</span>
               {item.label}
@@ -210,22 +233,23 @@ export default function IksanaApp() {
         </div>
         <div style={{ padding: 16, borderTop: "1px solid #1e2133" }}>
           <div style={{ fontSize: 11, color: "#374151" }}>v2.3 · ISO 19650</div>
+          <button className="btn btn-ghost" style={{ fontSize: 11, width: "100%", marginTop: 8 }} onClick={() => persistUser(null)}>Logout</button>
         </div>
       </div>
 
       {/* Main */}
       <div style={{ marginLeft: 220, minHeight: "100vh", width: "calc(100% - 220px)" }}>
         <div style={{ padding: "24px 28px", width: "100%", boxSizing: "border-box" }}>
-          {tab === "dashboard" && <Dashboard engineers={engineers} projects={projects} tasks={tasks} setTab={setTab} />}
-          {tab === "tasks" && <Tasks tasks={tasks} engineers={engineers} projects={projects} setTasks={v => persist(KEYS.tasks, setTasks, v)} showToast={showToast} />}
-          {tab === "engineers" && <Engineers engineers={engineers} tasks={tasks} setEngineers={v => persist(KEYS.engineers, setEngineers, v)} showToast={showToast} />}
-          {tab === "projects" && <Projects projects={projects} tasks={tasks} engineers={engineers} setProjects={v => persist(KEYS.projects, setProjects, v)} showToast={showToast} />}
-          {tab === "allocation" && <Allocation engineers={engineers} tasks={tasks} projects={projects} />}
-          {tab === "attendance" && <Attendance engineers={engineers} attendance={attendance} leaves={leaves} setAttendance={v => persist(KEYS.attendance, setAttendance, v)} setLeaves={v => persist(KEYS.leaves, setLeaves, v)} showToast={showToast} />}
-          {tab === "productivity" && <Productivity productivity={productivity} tasks={tasks} engineers={engineers} projects={projects} setProductivity={v => persist(KEYS.productivity, setProductivity, v)} showToast={showToast} />}
-          {tab === "reports" && <Reports engineers={engineers} projects={projects} tasks={tasks} attendance={attendance} leaves={leaves} />}
-          {tab === "notifications" && <Notifications tasks={tasks} projects={projects} engineers={engineers} leaves={leaves} dismissed={dismissed} setDismissed={v => persist(KEYS.dismissed, setDismissed, v)} setTab={setTab} />}
-          {tab === "export" && <Export tasks={tasks} projects={projects} engineers={engineers} attendance={attendance} leaves={leaves} />}
+          {tab === "dashboard" && <Dashboard engineers={engineers} projects={projects} tasks={tasks} setTab={setTab} currentUser={currentUser} />}
+          {tab === "tasks" && <Tasks tasks={tasks} engineers={engineers} projects={projects} setTasks={v => persist(KEYS.tasks, setTasks, v)} showToast={showToast} currentUser={currentUser} />}
+          {tab === "engineers" && <Engineers engineers={engineers} tasks={tasks} setEngineers={v => persist(KEYS.engineers, setEngineers, v)} showToast={showToast} currentUser={currentUser} />}
+          {tab === "projects" && <Projects projects={projects} tasks={tasks} engineers={engineers} setProjects={v => persist(KEYS.projects, setProjects, v)} showToast={showToast} currentUser={currentUser} />}
+          {tab === "allocation" && <Allocation engineers={engineers} tasks={tasks} projects={projects} currentUser={currentUser} />}
+          {tab === "attendance" && <Attendance engineers={engineers} attendance={attendance} leaves={leaves} setAttendance={v => persist(KEYS.attendance, setAttendance, v)} setLeaves={v => persist(KEYS.leaves, setLeaves, v)} showToast={showToast} currentUser={currentUser} />}
+          {tab === "productivity" && <Productivity productivity={productivity} tasks={tasks} engineers={engineers} projects={projects} setProductivity={v => persist(KEYS.productivity, setProductivity, v)} showToast={showToast} currentUser={currentUser} />}
+          {tab === "reports" && <Reports engineers={engineers} projects={projects} tasks={tasks} attendance={attendance} leaves={leaves} currentUser={currentUser} />}
+          {tab === "notifications" && <Notifications tasks={tasks} projects={projects} engineers={engineers} leaves={leaves} dismissed={dismissed} setDismissed={v => persist(KEYS.dismissed, setDismissed, v)} setTab={setTab} currentUser={currentUser} />}
+          {tab === "export" && <Export tasks={tasks} projects={projects} engineers={engineers} attendance={attendance} leaves={leaves} currentUser={currentUser} />}
         </div>
       </div>
 
@@ -235,6 +259,34 @@ export default function IksanaApp() {
           {toast.msg}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Login ────────────────────────────────────────────────────────────────────
+function Login({ onLogin, users }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const handleLogin = () => {
+    const user = users.find(u => u.email === email && u.password === password);
+    if (user) {
+      onLogin(user);
+    } else {
+      setError("Invalid credentials");
+    }
+  };
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0c0e14", color: "#e2e8f0", fontFamily: "Sora, sans-serif" }}>
+      <div style={{ background: "#13151f", border: "1px solid #2d3148", borderRadius: 16, padding: 32, width: 320 }}>
+        <div style={{ fontSize: 20, fontWeight: 700, textAlign: "center", marginBottom: 24 }}>Iksana Studio</div>
+        <div className="form-row"><label>Email</label><input value={email} onChange={e => setEmail(e.target.value)} /></div>
+        <div className="form-row"><label>Password</label><input type="password" value={password} onChange={e => setPassword(e.target.value)} /></div>
+        {error && <div style={{ color: "#ef4444", fontSize: 12, marginTop: 8 }}>{error}</div>}
+        <button className="btn btn-primary" onClick={handleLogin} style={{ width: "100%", marginTop: 16 }}>Login</button>
+      </div>
     </div>
   );
 }
@@ -356,13 +408,14 @@ function Dashboard({ engineers, projects, tasks, setTab }) {
 }
 
 // ─── Tasks ───────────────────────────────────────────────────────────────────
-function Tasks({ tasks, engineers, projects, setTasks, showToast }) {
+function Tasks({ tasks, engineers, projects, setTasks, showToast, currentUser }) {
   const [filter, setFilter] = useState({ status: "all", project: "all", engineer: "all", discipline: "all" });
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [logHours, setLogHours] = useState(null); // { taskId, hours }
 
   const filtered = tasks.filter(t =>
+    (currentUser.role === "admin" || t.assignee === currentUser.id) &&
     (filter.status === "all" || t.status === filter.status) &&
     (filter.project === "all" || t.projectId === filter.project) &&
     (filter.engineer === "all" || t.assignee === filter.engineer) &&
@@ -371,6 +424,14 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast }) {
 
   const handleSave = (data) => {
     if (editing) {
+      if (editing.assignee !== data.assignee) {
+        const eng = engineers.find(e => e.id === data.assignee);
+        showToast(`Task assigned to ${eng?.name}`, "success");
+        // Simulate email alert for user
+        if (currentUser.role === "admin" && eng) {
+          setTimeout(() => alert(`Email sent to ${eng.email}: New task "${data.title}" assigned.`), 1000);
+        }
+      }
       setTasks(tasks.map(t => t.id === editing.id ? { ...editing, ...data } : t));
       showToast("Task updated");
     } else {
@@ -392,6 +453,38 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast }) {
     setLogHours(null);
   };
 
+  const handleImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const csv = e.target.result;
+      const lines = csv.split('\n').filter(l => l.trim());
+      if (lines.length < 2) return;
+      const headers = lines[0].split(',');
+      const newTasks = lines.slice(1).map(line => {
+        const vals = line.split(',');
+        return {
+          id: "t" + uid(),
+          title: vals[0]?.trim() || "",
+          projectId: vals[1]?.trim() || "",
+          assignee: vals[2]?.trim() || "",
+          discipline: vals[3]?.trim() || "BIM",
+          priority: vals[4]?.trim() || "medium",
+          status: vals[5]?.trim() || "not-started",
+          estimatedHours: Number(vals[6]) || 0,
+          dueDate: vals[7]?.trim() || "",
+          loggedHours: 0,
+          createdAt: new Date().toISOString().slice(0, 10),
+          onHoldComments: "",
+        };
+      });
+      setTasks([...tasks, ...newTasks]);
+      showToast(`${newTasks.length} tasks imported`);
+    };
+    reader.readAsText(file);
+  };
+
   return (
     <div>
       <PageHeader title="Tasks" sub={`${filtered.length} tasks`} action={<button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>+ New Task</button>} />
@@ -409,6 +502,14 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast }) {
           </select>
         ))}
       </div>
+
+      {/* Import */}
+      {currentUser.role === "admin" && (
+        <div style={{ marginBottom: 20 }}>
+          <label style={{ fontSize: 12, color: "#94a3b8" }}>Import Tasks (CSV)</label>
+          <input type="file" accept=".csv" onChange={handleImport} style={{ marginLeft: 8 }} />
+        </div>
+      )}
 
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         <table>
@@ -478,7 +579,7 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast }) {
 }
 
 function TaskForm({ task, engineers, projects, onSave, onClose }) {
-  const [d, setD] = useState(task || { title: "", projectId: "", assignee: "", discipline: "BIM", priority: "medium", status: "not-started", estimatedHours: "", dueDate: "" });
+  const [d, setD] = useState(task || { title: "", projectId: "", assignee: "", discipline: "BIM", priority: "medium", status: "not-started", estimatedHours: "", dueDate: "", onHoldComments: "" });
   const set = (k, v) => setD(p => ({ ...p, [k]: v }));
   return (
     <div className="modal-bg">
@@ -524,6 +625,7 @@ function TaskForm({ task, engineers, projects, onSave, onClose }) {
           </div>
         </div>
         <div className="form-row"><label>Due Date</label><input type="date" value={d.dueDate} onChange={e => set("dueDate", e.target.value)} /></div>
+        {d.status === "on-hold" && <div className="form-row"><label>On Hold Comments</label><textarea rows={3} value={d.onHoldComments} onChange={e => set("onHoldComments", e.target.value)} placeholder="Reason for hold..." /></div>}
         <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
           <button className="btn btn-primary" onClick={() => onSave(d)}>Save Task</button>
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
@@ -1072,14 +1174,14 @@ function Reports({ engineers, projects, tasks, attendance = [], leaves = [] }) {
 }
 
 // ─── Attendance ───────────────────────────────────────────────────────────────
-function Attendance({ engineers, attendance, leaves, setAttendance, setLeaves, showToast }) {
+function Attendance({ engineers, attendance, leaves, setAttendance, setLeaves, showToast, currentUser }) {
   const [view, setView] = useState("today"); // today | monthly | leaves
   const [selectedDate, setSelectedDate] = useState(TODAY);
   const [selectedMonth, setSelectedMonth] = useState(TODAY.slice(0, 7));
   const [showLeaveForm, setShowLeaveForm] = useState(false);
   const [editingLeave, setEditingLeave] = useState(null);
 
-  const activeEng = engineers.filter(e => e.active);
+  const activeEng = engineers.filter(e => e.active && (currentUser.role === "admin" || e.id === currentUser.id));
 
   // ── Today's attendance helpers ──
   const getRecord = (engId, date) => attendance.find(a => a.engineerId === engId && a.date === date);
@@ -1508,14 +1610,14 @@ function computeAlerts(tasks, projects, engineers, leaves, dismissed = []) {
 }
 
 // ─── Notifications ────────────────────────────────────────────────────────────
-function Notifications({ tasks, projects, engineers, leaves, dismissed, setDismissed, setTab }) {
+function Notifications({ tasks, projects, engineers, leaves, dismissed, setDismissed, setTab, currentUser }) {
   const [filter, setFilter] = useState("all");
   const [showDismissed, setShowDismissed] = useState(false);
   const allAlerts = computeAlerts(tasks, projects, engineers, leaves, []);
   const activeAlerts = allAlerts.filter(a => !dismissed.includes(a.id));
   const dismissedAlerts = allAlerts.filter(a => dismissed.includes(a.id));
 
-  const filtered = (showDismissed ? dismissedAlerts : activeAlerts).filter(a => filter === "all" || a.category === filter || a.severity === filter);
+  const filtered = (showDismissed ? dismissedAlerts : activeAlerts).filter(a => filter === "all" || a.category === filter || a.severity === filter).filter(a => currentUser.role === "admin" || a.assignee === currentUser.name || !a.assignee);
 
   const dismiss = (id) => setDismissed([...dismissed, id]);
   const dismissAll = () => setDismissed([...dismissed, ...activeAlerts.map(a => a.id)]);
