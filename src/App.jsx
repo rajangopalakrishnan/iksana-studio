@@ -160,45 +160,56 @@ export default function IksanaApp() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  const appStyles = (
+    <style>{`
+      @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body { background: #0c0e14; }
+      ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #1a1d27; } ::-webkit-scrollbar-thumb { background: #2d3148; border-radius: 3px; }
+      input, select, textarea { background: #1a1d27 !important; border: 1px solid #2d3148 !important; color: #e2e8f0 !important; border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 13px; outline: none; width: 100%; }
+      input:focus, select:focus, textarea:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
+      label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; display: block; font-weight: 500; }
+      .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; transition: all 0.15s; }
+      .btn-primary { background: #6366f1; color: white; } .btn-primary:hover { background: #4f46e5; }
+      .btn-danger { background: #ef4444; color: white; } .btn-danger:hover { background: #dc2626; }
+      .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid #2d3148 !important; } .btn-ghost:hover { background: #1a1d27; color: #e2e8f0; }
+      .card { background: #13151f; border: 1px solid #1e2133; border-radius: 12px; padding: 20px; }
+      .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+      .progress-bar { height: 6px; background: #1e2133; border-radius: 3px; overflow: hidden; }
+      .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+      table { width: 100%; border-collapse: collapse; }
+      th { font-size: 11px; color: #64748b; font-weight: 600; padding: 10px 12px; text-align: left; border-bottom: 1px solid #1e2133; text-transform: uppercase; letter-spacing: 0.05em; }
+      td { font-size: 13px; padding: 10px 12px; border-bottom: 1px solid #1a1d27; vertical-align: middle; }
+      tr:hover td { background: #13151f; }
+      .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+      .modal { background: #13151f; border: 1px solid #2d3148; border-radius: 16px; padding: 28px; width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
+      .form-row { margin-bottom: 14px; }
+      .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .stat-card { background: linear-gradient(135deg, #13151f 0%, #1a1d2e 100%); border: 1px solid #1e2133; border-radius: 12px; padding: 20px; }
+      .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; color: #64748b; transition: all 0.15s; white-space: nowrap; }
+      .nav-item:hover { background: #1a1d27; color: #e2e8f0; }
+      .nav-item.active { background: rgba(99,102,241,0.15); color: #818cf8; }
+      .badge { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; font-weight: 700; background: #6366f1; color: white; margin-left: auto; }
+    `}</style>
+  );
+
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0f1117", color: "#e2e8f0", fontFamily: "Sora, sans-serif", fontSize: 18 }}>
+      {appStyles}
       Loading Iksana Studio…
     </div>
   );
 
-  if (!currentUser) return <Login onLogin={persistUser} users={users} />;
+  if (!currentUser) return (
+    <div style={{ minHeight: "100vh", background: "#0c0e14", color: "#e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
+      {appStyles}
+      <Login onLogin={persistUser} users={users} />
+    </div>
+  );
 
   return (
     <div style={{ fontFamily: "'Sora', 'DM Sans', sans-serif", background: "#0c0e14", minHeight: "100vh", color: "#e2e8f0" }}>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #1a1d27; } ::-webkit-scrollbar-thumb { background: #2d3148; border-radius: 3px; }
-        input, select, textarea { background: #1a1d27 !important; border: 1px solid #2d3148 !important; color: #e2e8f0 !important; border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 13px; outline: none; width: 100%; }
-        input:focus, select:focus, textarea:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-        label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; display: block; font-weight: 500; }
-        .btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; font-family: inherit; transition: all 0.15s; }
-        .btn-primary { background: #6366f1; color: white; } .btn-primary:hover { background: #4f46e5; }
-        .btn-danger { background: #ef4444; color: white; } .btn-danger:hover { background: #dc2626; }
-        .btn-ghost { background: transparent; color: #94a3b8; border: 1px solid #2d3148 !important; } .btn-ghost:hover { background: #1a1d27; color: #e2e8f0; }
-        .card { background: #13151f; border: 1px solid #1e2133; border-radius: 12px; padding: 20px; }
-        .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-        .progress-bar { height: 6px; background: #1e2133; border-radius: 3px; overflow: hidden; }
-        .progress-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
-        table { width: 100%; border-collapse: collapse; }
-        th { font-size: 11px; color: #64748b; font-weight: 600; padding: 10px 12px; text-align: left; border-bottom: 1px solid #1e2133; text-transform: uppercase; letter-spacing: 0.05em; }
-        td { font-size: 13px; padding: 10px 12px; border-bottom: 1px solid #1a1d27; vertical-align: middle; }
-        tr:hover td { background: #13151f; }
-        .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
-        .modal { background: #13151f; border: 1px solid #2d3148; border-radius: 16px; padding: 28px; width: 480px; max-width: 95vw; max-height: 90vh; overflow-y: auto; }
-        .form-row { margin-bottom: 14px; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        .stat-card { background: linear-gradient(135deg, #13151f 0%, #1a1d2e 100%); border: 1px solid #1e2133; border-radius: 12px; padding: 20px; }
-        .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; color: #64748b; transition: all 0.15s; white-space: nowrap; }
-        .nav-item:hover { background: #1a1d27; color: #e2e8f0; }
-        .nav-item.active { background: rgba(99,102,241,0.15); color: #818cf8; }
-        .badge { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; font-size: 10px; font-weight: 700; background: #6366f1; color: white; margin-left: auto; }
-      `}</style>
+      {appStyles}
 
       {/* Sidebar */}
       <div style={{ position: "fixed", top: 0, left: 0, bottom: 0, width: 220, background: "#0c0e14", borderRight: "1px solid #1e2133", display: "flex", flexDirection: "column", zIndex: 50 }}>
@@ -268,24 +279,171 @@ function Login({ onLogin, users }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [focused, setFocused] = useState(null);
 
   const handleLogin = () => {
     const user = users.find(u => u.email === email && u.password === password);
-    if (user) {
-      onLogin(user);
-    } else {
-      setError("Invalid credentials");
-    }
+    if (user) { onLogin(user); } else { setError("Invalid credentials"); }
   };
 
+  const features = [
+    { icon: "◈", label: "Task & Project Tracking" },
+    { icon: "⊞", label: "Work Allocation" },
+    { icon: "◷", label: "Attendance & Leave" },
+    { icon: "◧", label: "Reports & Export" },
+  ];
+
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "#0c0e14", color: "#e2e8f0", fontFamily: "Sora, sans-serif" }}>
-      <div style={{ background: "#13151f", border: "1px solid #2d3148", borderRadius: 16, padding: 32, width: 320 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, textAlign: "center", marginBottom: 24 }}>Iksana Studio</div>
-        <div className="form-row"><label>Email</label><input value={email} onChange={e => setEmail(e.target.value)} /></div>
-        <div className="form-row"><label>Password</label><input type="password" value={password} onChange={e => setPassword(e.target.value)} /></div>
-        {error && <div style={{ color: "#ef4444", fontSize: 12, marginTop: 8 }}>{error}</div>}
-        <button className="btn btn-primary" onClick={handleLogin} style={{ width: "100%", marginTop: 16 }}>Login</button>
+    <div style={{
+      minHeight: "100vh", background: "#0c0e14", display: "flex", alignItems: "center",
+      justifyContent: "center", padding: 24, fontFamily: "Sora, sans-serif", position: "relative", overflow: "hidden"
+    }}>
+      {/* Background grid */}
+      <div style={{
+        position: "absolute", inset: 0, backgroundImage: "linear-gradient(#1e213322 1px, transparent 1px), linear-gradient(90deg, #1e213322 1px, transparent 1px)",
+        backgroundSize: "40px 40px", pointerEvents: "none"
+      }} />
+      {/* Glow blobs */}
+      <div style={{ position: "absolute", top: "15%", left: "10%", width: 400, height: 400, borderRadius: "50%", background: "radial-gradient(circle, #6366f118 0%, transparent 70%)", pointerEvents: "none" }} />
+      <div style={{ position: "absolute", bottom: "10%", right: "5%", width: 500, height: 500, borderRadius: "50%", background: "radial-gradient(circle, #818cf808 0%, transparent 70%)", pointerEvents: "none" }} />
+
+      <div style={{ display: "flex", gap: 0, width: "100%", maxWidth: 900, position: "relative", zIndex: 1, borderRadius: 20, overflow: "hidden", boxShadow: "0 40px 80px rgba(0,0,0,0.6)", border: "1px solid #1e2133" }}>
+
+        {/* LEFT PANEL */}
+        <div style={{
+          flex: "0 0 380px", background: "linear-gradient(160deg, #0f1117 0%, #13151f 100%)",
+          padding: "48px 40px", display: "flex", flexDirection: "column", justifyContent: "space-between",
+          borderRight: "1px solid #1e2133"
+        }}>
+          <div>
+            {/* Logo */}
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 40 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10, background: "linear-gradient(135deg, #6366f1, #818cf8)",
+                display: "flex", alignItems: "center", justifyContent: "center", fontSize: 18, fontWeight: 700, color: "white"
+              }}>⬡</div>
+              <div>
+                <div style={{ fontSize: 20, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.03em" }}>iksana</div>
+                <div style={{ fontSize: 10, color: "#6366f1", letterSpacing: "0.18em", textTransform: "uppercase", marginTop: 1 }}>Studio Management</div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: 26, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.03em", lineHeight: 1.2, marginBottom: 12 }}>
+              Task Allocation<br />& Management
+            </div>
+            <div style={{ fontSize: 13, color: "#64748b", lineHeight: 1.7, marginBottom: 36 }}>
+              Manage projects, track tasks, monitor team attendance and export reports — all in one place.
+            </div>
+
+            {/* Feature list */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {features.map(f => (
+                <div key={f.label} style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{
+                    width: 30, height: 30, borderRadius: 8, background: "#6366f115", border: "1px solid #6366f130",
+                    display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, color: "#818cf8", flexShrink: 0
+                  }}>{f.icon}</div>
+                  <span style={{ fontSize: 13, color: "#94a3b8" }}>{f.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div style={{ fontSize: 11, color: "#374151", marginTop: 32 }}>
+            v2.3 · ISO 19650 · Internal Use Only
+          </div>
+        </div>
+
+        {/* RIGHT PANEL */}
+        <div style={{ flex: 1, background: "#13151f", padding: "48px 44px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
+          <div style={{ marginBottom: 32 }}>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.02em", marginBottom: 6 }}>Welcome back</div>
+            <div style={{ fontSize: 13, color: "#4a5568" }}>Sign in to continue to your studio dashboard.</div>
+          </div>
+
+          {/* Email field */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>Email Address</label>
+            <div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: focused === "email" ? "#818cf8" : "#374151", fontSize: 14, transition: "color 0.15s", pointerEvents: "none" }}>◉</span>
+              <input
+                value={email}
+                onChange={e => { setEmail(e.target.value); setError(""); }}
+                onFocus={() => setFocused("email")}
+                onBlur={() => setFocused(null)}
+                placeholder="you@iksana.tech"
+                style={{
+                  width: "100%", background: "#0c0e14", border: `1px solid ${focused === "email" ? "#6366f1" : "#1e2133"}`,
+                  color: "#e2e8f0", borderRadius: 10, padding: "12px 14px 12px 38px",
+                  fontSize: 13, fontFamily: "inherit", outline: "none",
+                  boxShadow: focused === "email" ? "0 0 0 3px rgba(99,102,241,0.12)" : "none",
+                  transition: "all 0.15s", boxSizing: "border-box"
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Password field */}
+          <div style={{ marginBottom: 24 }}>
+            <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>Password</label>
+            <div style={{ position: "relative" }}>
+              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: focused === "pass" ? "#818cf8" : "#374151", fontSize: 14, transition: "color 0.15s", pointerEvents: "none" }}>◎</span>
+              <input
+                type="password"
+                value={password}
+                onChange={e => { setPassword(e.target.value); setError(""); }}
+                onFocus={() => setFocused("pass")}
+                onBlur={() => setFocused(null)}
+                onKeyDown={e => e.key === "Enter" && handleLogin()}
+                placeholder="••••••••"
+                style={{
+                  width: "100%", background: "#0c0e14", border: `1px solid ${focused === "pass" ? "#6366f1" : "#1e2133"}`,
+                  color: "#e2e8f0", borderRadius: 10, padding: "12px 14px 12px 38px",
+                  fontSize: 13, fontFamily: "inherit", outline: "none",
+                  boxShadow: focused === "pass" ? "0 0 0 3px rgba(99,102,241,0.12)" : "none",
+                  transition: "all 0.15s", boxSizing: "border-box"
+                }}
+              />
+            </div>
+          </div>
+
+          {/* Error */}
+          {error && (
+            <div style={{
+              background: "#ef444415", border: "1px solid #ef444430", borderRadius: 8,
+              padding: "10px 14px", fontSize: 12, color: "#ef4444", fontWeight: 500, marginBottom: 16
+            }}>
+              ⚠ {error}
+            </div>
+          )}
+
+          {/* Submit */}
+          <button
+            onClick={handleLogin}
+            style={{
+              width: "100%", padding: "13px", background: "linear-gradient(135deg, #6366f1, #818cf8)",
+              color: "white", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600,
+              fontFamily: "inherit", cursor: "pointer", letterSpacing: "0.01em",
+              boxShadow: "0 4px 20px rgba(99,102,241,0.35)", transition: "all 0.15s"
+            }}
+            onMouseEnter={e => e.target.style.boxShadow = "0 6px 28px rgba(99,102,241,0.5)"}
+            onMouseLeave={e => e.target.style.boxShadow = "0 4px 20px rgba(99,102,241,0.35)"}
+          >
+            Sign In →
+          </button>
+
+          <div style={{ marginTop: 28, padding: "16px", background: "#0c0e14", borderRadius: 10, border: "1px solid #1e2133" }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Demo Credentials</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+              <div style={{ fontSize: 12, color: "#4a5568" }}>
+                <span style={{ color: "#6366f1", fontWeight: 600 }}>Admin:</span> admin@iksana.tech / admin
+              </div>
+              <div style={{ fontSize: 12, color: "#4a5568" }}>
+                <span style={{ color: "#64748b", fontWeight: 600 }}>Engineer:</span> any engineer email / user
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
