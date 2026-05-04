@@ -98,7 +98,7 @@ const SEED_PRODUCTIVITY = {
 
 const SEED_USERS = [
   { id: "admin", name: "Administrator", email: "admin@iksana.tech", role: "admin", password: "admin" },
-  { id: "e3", name: "Biburaj", email: "btp@iksana.tech", role: "admin", password: "biburaj" },
+  { id: "e3", name: "Biburaj", email: "btp@iksana.tech", role: "task-manager", password: "biburaj" },
   ...SEED_ENGINEERS.filter(e => e.id !== "e3").map(e => ({ id: e.id, name: e.name, email: e.email, role: "user", password: "user" })),
 ];
 
@@ -230,6 +230,10 @@ export default function IksanaApp() {
             { id: "reports", icon: "◳", label: "Reports" },
             { id: "notifications", icon: "◐", label: "Alerts", badge: computeAlerts(tasks, projects, engineers, leaves, dismissed).filter(a => a.severity === "critical").length },
             { id: "export", icon: "◧", label: "Export" },
+          ] : currentUser.role === "task-manager" ? [
+            { id: "dashboard", icon: "⬡", label: "Dashboard" },
+            { id: "tasks", icon: "◈", label: "All Tasks", badge: tasks.filter(t => t.status === "in-progress").length },
+            { id: "notifications", icon: "◐", label: "Alerts", badge: computeAlerts(tasks, projects, engineers, leaves, dismissed).filter(a => a.severity === "critical").length },
           ] : [
             { id: "dashboard", icon: "⬡", label: "Dashboard" },
             { id: "tasks", icon: "◈", label: "My Tasks", badge: tasks.filter(t => t.assignee === currentUser.id && t.status === "in-progress").length },
@@ -252,16 +256,24 @@ export default function IksanaApp() {
       {/* Main */}
       <div style={{ marginLeft: 220, minHeight: "100vh", width: "calc(100% - 220px)" }}>
         <div style={{ padding: "24px 28px", width: "100%", boxSizing: "border-box" }}>
-          {tab === "dashboard" && <Dashboard engineers={engineers} projects={projects} tasks={tasks} setTab={setTab} currentUser={currentUser} />}
-          {tab === "tasks" && <Tasks tasks={tasks} engineers={engineers} projects={projects} setTasks={v => persist(KEYS.tasks, setTasks, v)} showToast={showToast} currentUser={currentUser} />}
-          {tab === "engineers" && <Engineers engineers={engineers} tasks={tasks} setEngineers={v => persist(KEYS.engineers, setEngineers, v)} showToast={showToast} currentUser={currentUser} />}
-          {tab === "projects" && <Projects projects={projects} tasks={tasks} engineers={engineers} setProjects={v => persist(KEYS.projects, setProjects, v)} showToast={showToast} currentUser={currentUser} />}
-          {tab === "allocation" && <Allocation engineers={engineers} tasks={tasks} projects={projects} currentUser={currentUser} />}
-          {tab === "attendance" && <Attendance engineers={engineers} attendance={attendance} leaves={leaves} setAttendance={v => persist(KEYS.attendance, setAttendance, v)} setLeaves={v => persist(KEYS.leaves, setLeaves, v)} showToast={showToast} currentUser={currentUser} />}
-          {tab === "productivity" && <Productivity productivity={productivity} tasks={tasks} engineers={engineers} projects={projects} setProductivity={v => persist(KEYS.productivity, setProductivity, v)} showToast={showToast} currentUser={currentUser} />}
-          {tab === "reports" && <Reports engineers={engineers} projects={projects} tasks={tasks} attendance={attendance} leaves={leaves} currentUser={currentUser} />}
-          {tab === "notifications" && <Notifications tasks={tasks} projects={projects} engineers={engineers} leaves={leaves} dismissed={dismissed} setDismissed={v => persist(KEYS.dismissed, setDismissed, v)} setTab={setTab} currentUser={currentUser} />}
-          {tab === "export" && <Export tasks={tasks} projects={projects} engineers={engineers} attendance={attendance} leaves={leaves} currentUser={currentUser} />}
+          {(() => {
+            const allowedTabs = currentUser.role === "task-manager" ? ["dashboard", "tasks", "notifications"] : null;
+            if (allowedTabs && !allowedTabs.includes(tab)) return null;
+            return (
+              <>
+                {tab === "dashboard" && <Dashboard engineers={engineers} projects={projects} tasks={tasks} setTab={setTab} currentUser={currentUser} />}
+                {tab === "tasks" && <Tasks tasks={tasks} engineers={engineers} projects={projects} setTasks={v => persist(KEYS.tasks, setTasks, v)} showToast={showToast} currentUser={currentUser} />}
+                {tab === "engineers" && currentUser.role === "admin" && <Engineers engineers={engineers} tasks={tasks} setEngineers={v => persist(KEYS.engineers, setEngineers, v)} showToast={showToast} currentUser={currentUser} />}
+                {tab === "projects" && currentUser.role === "admin" && <Projects projects={projects} tasks={tasks} engineers={engineers} setProjects={v => persist(KEYS.projects, setProjects, v)} showToast={showToast} currentUser={currentUser} />}
+                {tab === "allocation" && currentUser.role === "admin" && <Allocation engineers={engineers} tasks={tasks} projects={projects} currentUser={currentUser} />}
+                {tab === "attendance" && currentUser.role !== "task-manager" && <Attendance engineers={engineers} attendance={attendance} leaves={leaves} setAttendance={v => persist(KEYS.attendance, setAttendance, v)} setLeaves={v => persist(KEYS.leaves, setLeaves, v)} showToast={showToast} currentUser={currentUser} />}
+                {tab === "productivity" && currentUser.role === "admin" && <Productivity productivity={productivity} tasks={tasks} engineers={engineers} projects={projects} setProductivity={v => persist(KEYS.productivity, setProductivity, v)} showToast={showToast} currentUser={currentUser} />}
+                {tab === "reports" && currentUser.role === "admin" && <Reports engineers={engineers} projects={projects} tasks={tasks} attendance={attendance} leaves={leaves} currentUser={currentUser} />}
+                {tab === "notifications" && <Notifications tasks={tasks} projects={projects} engineers={engineers} leaves={leaves} dismissed={dismissed} setDismissed={v => persist(KEYS.dismissed, setDismissed, v)} setTab={setTab} currentUser={currentUser} />}
+                {tab === "export" && currentUser.role === "admin" && <Export tasks={tasks} projects={projects} engineers={engineers} attendance={attendance} leaves={leaves} currentUser={currentUser} />}
+              </>
+            );
+          })()}
         </div>
       </div>
 
