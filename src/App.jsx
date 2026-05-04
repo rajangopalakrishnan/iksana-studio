@@ -98,7 +98,8 @@ const SEED_PRODUCTIVITY = {
 
 const SEED_USERS = [
   { id: "admin", name: "Administrator", email: "admin@iksana.tech", role: "admin", password: "admin" },
-  ...SEED_ENGINEERS.map(e => ({ id: e.id, name: e.name, email: e.email, role: "user", password: "user" })),
+  { id: "e3", name: "Biburaj", email: "btp@iksana.tech", role: "admin", password: "biburaj" },
+  ...SEED_ENGINEERS.filter(e => e.id !== "e3").map(e => ({ id: e.id, name: e.name, email: e.email, role: "user", password: "user" })),
 ];
 
 // ─── Utilities ───────────────────────────────────────────────────────────────
