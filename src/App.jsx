@@ -803,14 +803,13 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast, currentUser })
       const csv = e.target.result;
       const lines = csv.split('\n').filter(l => l.trim());
       if (lines.length < 2) return;
-      const headers = lines[0].split(',');
       const newTasks = lines.slice(1).map(line => {
         const vals = line.split(',');
         return {
           id: "t" + uid(),
           title: vals[0]?.trim() || "",
           projectId: vals[1]?.trim() || "",
-          assignee: vals[2]?.trim() || "",
+          assignee: currentUser.role === "admin" ? (vals[2]?.trim() || "") : currentUser.id,
           discipline: vals[3]?.trim() || "BIM",
           priority: vals[4]?.trim() || "medium",
           status: vals[5]?.trim() || "not-started",
@@ -825,6 +824,31 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast, currentUser })
       showToast(`${newTasks.length} tasks imported`);
     };
     reader.readAsText(file);
+  };
+
+  const handleExport = () => {
+    const headers = ["Title", "ProjectID", "AssigneeID", "Discipline", "Priority", "Status", "EstimatedHours", "DueDate"];
+    const rows = filtered.map(t => [
+      `"${t.title.replace(/"/g, '""')}"`,
+      t.projectId,
+      t.assignee,
+      t.discipline,
+      t.priority,
+      t.status,
+      t.estimatedHours,
+      t.dueDate
+    ].join(","));
+    const csvContent = [headers.join(","), ...rows].join("\n");
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `tasks_export_${currentUser.id}_${new Date().toISOString().slice(0,10)}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    showToast("Tasks exported");
   };
 
   return (
@@ -845,13 +869,24 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast, currentUser })
         ))}
       </div>
 
-      {/* Import */}
-      {currentUser.role === "admin" && (
-        <div style={{ marginBottom: 20 }}>
-          <label style={{ fontSize: 12, color: "#94a3b8" }}>Import Tasks (CSV)</label>
-          <input type="file" accept=".csv" onChange={handleImport} style={{ marginLeft: 8 }} />
+      {/* Import / Export Tools */}
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 20, background: "#1a1d27", padding: "12px 16px", borderRadius: 10, border: "1px solid #1e2133" }}>
+        <div style={{ display: "flex", flex: 1, gap: 16, alignItems: "center" }}>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Export Tasks</label>
+            <button className="btn btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={handleExport}>Download CSV ↓</button>
+          </div>
+          <div style={{ width: 1, height: 32, background: "#1e2133" }} />
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <label style={{ fontSize: 11, color: "#64748b", fontWeight: 600, textTransform: "uppercase", marginBottom: 4 }}>Import Tasks</label>
+            <input type="file" id="task-import" accept=".csv" onChange={handleImport} style={{ display: "none" }} />
+            <button className="btn btn-ghost" style={{ padding: "6px 12px", fontSize: 12 }} onClick={() => document.getElementById("task-import").click()}>Upload CSV ↑</button>
+          </div>
         </div>
-      )}
+        <div style={{ fontSize: 12, color: "#4a5568", maxWidth: 200, lineHeight: 1.4 }}>
+          {currentUser.role === "admin" ? "Admins can import for anyone." : "Imported tasks will be assigned to you."}
+        </div>
+      </div>
 
       <div className="card" style={{ padding: 0, overflow: "hidden" }}>
         <table>
