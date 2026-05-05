@@ -298,11 +298,12 @@ export default function IksanaApp() {
 
 // ─── Login ────────────────────────────────────────────────────────────────────
 function Login({ onLogin, users, setUsers }) {
-  const [mode, setMode] = useState('signin'); // signin, signup, forgot, verify-forgot
+  const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
+  const [generatedOtp, setGeneratedOtp] = useState("");
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [focused, setFocused] = useState(null);
@@ -343,18 +344,40 @@ function Login({ onLogin, users, setUsers }) {
     onLogin(updatedUsers[userIndex]);
   };
 
-  const handleSendForgotOtp = () => {
+  const handleSendForgotOtp = async () => {
     setError(""); setInfo("");
     if (!email) {
       setError('Please enter your email address');
       return;
     }
-    if (!users.find(u => u.email === email)) {
+    if (!users.find(u => u.email.toLowerCase() === email.toLowerCase())) {
       setError('Email not found in our records');
       return;
     }
-    setMode('verify-forgot');
-    setInfo('Verification code sent to your email (use 1234)');
+    const code = String(Math.floor(100000 + Math.random() * 900000));
+    setGeneratedOtp(code);
+    setLoading(true);
+    try {
+      const result = await sendTaskAssignmentEmail({
+        to_email:     email,
+        to_name:      users.find(u => u.email.toLowerCase() === email.toLowerCase())?.name || 'User',
+        task_title:   `Your password reset code is: ${code}`,
+        task_status:  'Valid for 10 minutes',
+        project_name: 'Iksana Studio',
+        due_date:     '',
+        assigned_by:  'Iksana Studio Security',
+      });
+      if (result?.skipped) {
+        setError('Email service not configured yet. Contact admin to reset password.');
+        setLoading(false);
+        return;
+      }
+      setMode('verify-forgot');
+      setInfo(`A 6-digit code has been sent to ${email}`);
+    } catch {
+      setError('Failed to send OTP. Please try again.');
+    }
+    setLoading(false);
   };
 
   const handleResetPassword = () => {
@@ -363,11 +386,15 @@ function Login({ onLogin, users, setUsers }) {
       setError('Enter the OTP and choose a new password');
       return;
     }
-    if (otp !== "1234") {
-      setError('Invalid OTP');
+    if (otp.trim() !== generatedOtp) {
+      setError('Invalid OTP. Check your email and try again.');
       return;
     }
-    const userIndex = users.findIndex(u => u.email === email);
+    if (password.length < 4) {
+      setError('Password must be at least 4 characters');
+      return;
+    }
+    const userIndex = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
     if (userIndex === -1) {
       setError('User not found');
       return;
@@ -375,6 +402,7 @@ function Login({ onLogin, users, setUsers }) {
     const updatedUsers = [...users];
     updatedUsers[userIndex] = { ...updatedUsers[userIndex], password };
     setUsers(updatedUsers);
+    setGeneratedOtp("");
     setMode('signin');
     setOtp(""); setPassword("");
     setInfo('Password reset successfully. Please sign in.');
