@@ -19,13 +19,13 @@ const daysBack = (n) => { const d = new Date(); d.setDate(d.getDate() - n); retu
 
 const SEED_ATTENDANCE = [
   // last 5 working days, all 8 engineers
-  ...["e1","e2","e3","e4","e5","e6","e7","e8"].flatMap(eid =>
-    [0,1,2,3,4].map(n => ({
+  ...["e1", "e2", "e3", "e4", "e5", "e6", "e7", "e8"].flatMap(eid =>
+    [0, 1, 2, 3, 4].map(n => ({
       id: `a-${eid}-${n}`,
       engineerId: eid,
       date: daysBack(n),
-      checkIn: n === 0 ? "09:10" : ["09:00","09:15","08:55","09:30","09:05"][n % 5],
-      checkOut: n === 0 ? null : ["18:00","18:15","17:45","18:30","18:00"][n % 5],
+      checkIn: n === 0 ? "09:10" : ["09:00", "09:15", "08:55", "09:30", "09:05"][n % 5],
+      checkOut: n === 0 ? null : ["18:00", "18:15", "17:45", "18:30", "18:00"][n % 5],
       type: "present",
       notes: "",
     }))
@@ -58,12 +58,12 @@ async function load(key, fallback) {
       }
       return data;
     }
-  } catch {}
+  } catch { }
   return fallback;
 }
 async function save(key, val) {
   if (key === KEYS.currentUser || key === KEYS.dismissed) {
-    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch { }
     return;
   }
   try {
@@ -73,7 +73,7 @@ async function save(key, val) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(val),
     });
-  } catch {}
+  } catch { }
 }
 
 // ─── Seed Data ──────────────────────────────────────────────────────────────
@@ -483,14 +483,14 @@ function Login({ onLogin, users }) {
         <div style={{ flex: 1, background: "#13151f", padding: "48px 44px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ marginBottom: 32 }}>
             <div style={{ fontSize: 22, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.02em", marginBottom: 6 }}>
-              {mode === 'signin' ? 'Welcome back' : mode === 'verify' ? 'Verify your account' : 'Create a new account'}
+              {mode === 'signin' ? 'Welcome back' : mode === 'verify' ? 'Verify your account' : 'Sign up'}
             </div>
             <div style={{ fontSize: 13, color: "#4a5568" }}>
               {mode === 'signin'
                 ? 'Sign in to continue to your studio dashboard.'
                 : mode === 'verify'
-                ? 'Enter the code we sent to your email and choose a password.'
-                : 'Start by sending a verification code to your email.'}
+                  ? 'Enter the code we sent to your email and choose a password.'
+                  : 'Start by sending a verification code to your email.'}
             </div>
           </div>
 
@@ -617,7 +617,7 @@ function Login({ onLogin, users }) {
                 setError(''); setInfo(''); setOtp(''); setPassword('');
               }}
             >
-              {mode === 'signin' ? 'Create account' : 'Back to sign in'}
+              {mode === 'signin' ? 'Sign up' : 'Back to sign in'}
             </button>
           </div>
         </div>
@@ -1961,8 +1961,8 @@ function Notifications({ tasks, projects, engineers, leaves, dismissed, setDismi
 
   const SEV_STYLE = {
     critical: { bg: "#ef444415", border: "#ef444440", dot: "#ef4444", label: "#ef4444" },
-    warning:  { bg: "#f59e0b15", border: "#f59e0b40", dot: "#f59e0b", label: "#f59e0b" },
-    info:     { bg: "#6366f115", border: "#6366f140", dot: "#6366f1", label: "#818cf8" },
+    warning: { bg: "#f59e0b15", border: "#f59e0b40", dot: "#f59e0b", label: "#f59e0b" },
+    info: { bg: "#6366f115", border: "#6366f140", dot: "#6366f1", label: "#818cf8" },
   };
 
   const CAT_LABELS = { deadline: "Deadlines", budget: "Budget", workload: "Workload", leave: "Leave" };
@@ -2363,39 +2363,49 @@ function Export({ tasks: allTasks, projects: allProjects, engineers: allEngineer
         const totalBudget = projects.reduce((s, p) => s + p.budget, 0);
         const totalCostAll = tasks.reduce((s, t) => s + calcCost(t), 0);
         return [
-          { name: "Summary", colWidths: [36, 20, 36], data: [
-            ["IKSANA STUDIO — MANAGEMENT REPORT", "", ""],
-            [`Generated: ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`, "", ""],
-            [],
-            ["METRIC", "VALUE", "NOTES"],
-            ["Active Projects", projects.filter(p => p.status === "active").length, ""],
-            ["Total Projects", projects.length, ""],
-            ["Active Engineers", engineers.filter(e => e.active).length, ""],
-            ["Remote Engineers", engineers.filter(e => e.active && e.location === "remote").length, "50% remote workforce"],
-            ["Tasks In Progress", tasks.filter(t => t.status === "in-progress").length, ""],
-            ["Tasks Completed", tasks.filter(t => t.status === "completed").length, ""],
-            ["Total Hours Logged", tasks.reduce((s, t) => s + t.loggedHours, 0), ""],
-            ["Total Budget (INR)", totalBudget, "All projects"],
-            ["Total Cost to Date (INR)", Math.round(totalCostAll), "Day rates × logged hours"],
-            ["Budget Remaining (INR)", Math.round(totalBudget - totalCostAll), ""],
-            ["Overall Budget Burn %", `${pct(totalCostAll, totalBudget)}%`, ""],
-          ]},
-          { name: "Tasks", colWidths: [30, 26, 18, 12, 14, 10, 10, 10, 14, 12], data: [
-            ["Task Title", "Project", "Assignee", "Discipline", "Status", "Priority", "Est.Hrs", "Logged Hrs", "Cost (INR)", "Due Date"],
-            ...tasks.map(t => { const eng = engineers.find(e => e.id === t.assignee); const proj = projects.find(p => p.id === t.projectId); return [t.title, proj?.name || "—", eng?.name || "—", t.discipline, t.status, t.priority, t.estimatedHours, t.loggedHours, Math.round(calcCost(t)), t.dueDate]; }),
-          ]},
-          { name: "Projects", colWidths: [30, 16, 8, 10, 16, 16, 16, 10, 12], data: [
-            ["Project", "Client", "Region", "Status", "Budget (INR)", "Cost (INR)", "Remaining (INR)", "Progress %", "End Date"],
-            ...projects.map(p => { const ptasks = tasks.filter(t => t.projectId === p.id); const cost = ptasks.reduce((s, t) => s + calcCost(t), 0); const done = ptasks.filter(t => t.status === "completed").length; return [p.name, p.client, p.region, p.status, p.budget, Math.round(cost), Math.round(p.budget - cost), `${pct(done, ptasks.length)}%`, p.endDate]; }),
-          ]},
-          { name: "Engineers", colWidths: [22, 20, 10, 14, 10, 8, 8, 8, 14], data: [
-            ["Name", "Role", "Location", "Day Rate (INR)", "Tasks", "Done", "Active", "Hours", "Cost (INR)"],
-            ...engineers.filter(e => e.active).map(eng => { const myTasks = tasks.filter(t => t.assignee === eng.id); const logged = myTasks.reduce((s, t) => s + t.loggedHours, 0); return [eng.name, eng.role, eng.location, eng.rate, myTasks.length, myTasks.filter(t => t.status === "completed").length, myTasks.filter(t => t.status === "in-progress").length, logged, Math.round(logged * (eng.rate / 8))]; }),
-          ]},
-          { name: "Leave Register", colWidths: [22, 12, 12, 12, 8, 30, 12], data: [
-            ["Engineer", "Type", "From", "To", "Days", "Reason", "Status"],
-            ...leaves.map(l => { const eng = engineers.find(e => e.id === l.engineerId); const days = Math.ceil((new Date(l.endDate) - new Date(l.startDate)) / 86400000) + 1; return [eng?.name || l.engineerId, l.type, l.startDate, l.endDate, days, l.reason, l.status]; }),
-          ]},
+          {
+            name: "Summary", colWidths: [36, 20, 36], data: [
+              ["IKSANA STUDIO — MANAGEMENT REPORT", "", ""],
+              [`Generated: ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" })}`, "", ""],
+              [],
+              ["METRIC", "VALUE", "NOTES"],
+              ["Active Projects", projects.filter(p => p.status === "active").length, ""],
+              ["Total Projects", projects.length, ""],
+              ["Active Engineers", engineers.filter(e => e.active).length, ""],
+              ["Remote Engineers", engineers.filter(e => e.active && e.location === "remote").length, "50% remote workforce"],
+              ["Tasks In Progress", tasks.filter(t => t.status === "in-progress").length, ""],
+              ["Tasks Completed", tasks.filter(t => t.status === "completed").length, ""],
+              ["Total Hours Logged", tasks.reduce((s, t) => s + t.loggedHours, 0), ""],
+              ["Total Budget (INR)", totalBudget, "All projects"],
+              ["Total Cost to Date (INR)", Math.round(totalCostAll), "Day rates × logged hours"],
+              ["Budget Remaining (INR)", Math.round(totalBudget - totalCostAll), ""],
+              ["Overall Budget Burn %", `${pct(totalCostAll, totalBudget)}%`, ""],
+            ]
+          },
+          {
+            name: "Tasks", colWidths: [30, 26, 18, 12, 14, 10, 10, 10, 14, 12], data: [
+              ["Task Title", "Project", "Assignee", "Discipline", "Status", "Priority", "Est.Hrs", "Logged Hrs", "Cost (INR)", "Due Date"],
+              ...tasks.map(t => { const eng = engineers.find(e => e.id === t.assignee); const proj = projects.find(p => p.id === t.projectId); return [t.title, proj?.name || "—", eng?.name || "—", t.discipline, t.status, t.priority, t.estimatedHours, t.loggedHours, Math.round(calcCost(t)), t.dueDate]; }),
+            ]
+          },
+          {
+            name: "Projects", colWidths: [30, 16, 8, 10, 16, 16, 16, 10, 12], data: [
+              ["Project", "Client", "Region", "Status", "Budget (INR)", "Cost (INR)", "Remaining (INR)", "Progress %", "End Date"],
+              ...projects.map(p => { const ptasks = tasks.filter(t => t.projectId === p.id); const cost = ptasks.reduce((s, t) => s + calcCost(t), 0); const done = ptasks.filter(t => t.status === "completed").length; return [p.name, p.client, p.region, p.status, p.budget, Math.round(cost), Math.round(p.budget - cost), `${pct(done, ptasks.length)}%`, p.endDate]; }),
+            ]
+          },
+          {
+            name: "Engineers", colWidths: [22, 20, 10, 14, 10, 8, 8, 8, 14], data: [
+              ["Name", "Role", "Location", "Day Rate (INR)", "Tasks", "Done", "Active", "Hours", "Cost (INR)"],
+              ...engineers.filter(e => e.active).map(eng => { const myTasks = tasks.filter(t => t.assignee === eng.id); const logged = myTasks.reduce((s, t) => s + t.loggedHours, 0); return [eng.name, eng.role, eng.location, eng.rate, myTasks.length, myTasks.filter(t => t.status === "completed").length, myTasks.filter(t => t.status === "in-progress").length, logged, Math.round(logged * (eng.rate / 8))]; }),
+            ]
+          },
+          {
+            name: "Leave Register", colWidths: [22, 12, 12, 12, 8, 30, 12], data: [
+              ["Engineer", "Type", "From", "To", "Days", "Reason", "Status"],
+              ...leaves.map(l => { const eng = engineers.find(e => e.id === l.engineerId); const days = Math.ceil((new Date(l.endDate) - new Date(l.startDate)) / 86400000) + 1; return [eng?.name || l.engineerId, l.type, l.startDate, l.endDate, days, l.reason, l.status]; }),
+            ]
+          },
         ];
       },
     },
