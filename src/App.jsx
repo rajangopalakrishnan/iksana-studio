@@ -48,6 +48,7 @@ const LEAVE_COLORS = { casual: "#6366f1", sick: "#ef4444", annual: "#10b981", co
 // ─── Seed Data ──────────────────────────────────────────────────────────────
 const SEED_ENGINEERS = [
   { id: "e1", name: "Rajan Gopalakrishnan", role: "Director", location: "office", active: true, email: "rg@iksana.tech", rate: 3000 },
+  { id: "e12", name: "Arun Govindan", role: "Sr. BIM Engineer", location: "office", active: true, email: "arun.g@iksana.tech", rate: 2500 },
   { id: "e2", name: "Nisanth P", role: "Director", location: "office", active: true, email: "np@iksana.tech", rate: 3000 },
   { id: "e3", name: "Biburaj", role: "Co-Ordinator", location: "office", active: true, email: "btp@iksana.tech", rate: 2500 },
   { id: "e4", name: "Baburaj", role: "Sr. Tech Designer", location: "office", active: true, email: "baburaj.tc@iksana.tech", rate: 2200 },
@@ -117,7 +118,7 @@ export default function IksanaApp() {
         loadFromFirebase(KEYS.users, SEED_USERS),
         loadFromFirebase(KEYS.currentUser, null)
       ]);
-      
+
       setEngineers(eng); setProjects(proj); setTasks(tsk); setProductivity(prod);
       setAttendance(att); setLeaves(lvs); setDismissed(dis); setUsers(usr); setCurrentUser(cur);
       setLoading(false);
@@ -144,8 +145,8 @@ export default function IksanaApp() {
     <style>{`
       @import url('https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
       * { box-sizing: border-box; margin: 0; padding: 0; }
-      body { background: #0c0e14; }
-      ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #1a1d27; } ::-webkit-scrollbar-thumb { background: #2d3148; border-radius: 3px; }
+      body { background: #0c0e14; overflow-x: hidden; width: 100vw; }
+      ::-webkit-scrollbar { width: 6px; } ::-webkit-scrollbar-track { background: #0c0e14; } ::-webkit-scrollbar-thumb { background: #2d3148; border-radius: 3px; }
       input, select, textarea { background: #1a1d27 !important; border: 1px solid #2d3148 !important; color: #e2e8f0 !important; border-radius: 8px; padding: 8px 12px; font-family: inherit; font-size: 13px; outline: none; width: 100%; }
       input:focus, select:focus, textarea:focus { border-color: #6366f1 !important; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
       label { font-size: 12px; color: #94a3b8; margin-bottom: 4px; display: block; font-weight: 500; }
@@ -333,13 +334,13 @@ function Login({ onLogin, users, setUsers }) {
     setLoading(true);
     try {
       const result = await sendTaskAssignmentEmail({
-        to_email:     email,
-        to_name:      users.find(u => u.email.toLowerCase() === email.toLowerCase())?.name || 'User',
-        task_title:   `Your password reset code is: ${code}`,
-        task_status:  'Valid for 10 minutes',
+        to_email: email,
+        to_name: users.find(u => u.email.toLowerCase() === email.toLowerCase())?.name || 'User',
+        task_title: `Your password reset code is: ${code}`,
+        task_status: 'Valid for 10 minutes',
         project_name: 'Iksana Studio',
-        due_date:     '',
-        assigned_by:  'Iksana Studio Security',
+        due_date: '',
+        assigned_by: 'Iksana Studio Security',
       });
       if (result?.skipped) {
         setError('Email service not configured yet. Contact admin to reset password.');
@@ -745,13 +746,13 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast, currentUser })
         if (eng?.email) {
           showToast(`Notifying ${eng.name}…`);
           sendTaskAssignmentEmail({
-            to_email:     eng.email,
-            to_name:      eng.name,
-            task_title:   data.title,
-            task_status:  data.status,
+            to_email: eng.email,
+            to_name: eng.name,
+            task_title: data.title,
+            task_status: data.status,
             project_name: proj?.name || 'N/A',
-            due_date:     data.dueDate || 'Not set',
-            assigned_by:  currentUser.name,
+            due_date: data.dueDate || 'Not set',
+            assigned_by: currentUser.name,
           }).then(r => {
             if (!r?.skipped) showToast(`Email sent to ${eng.email}`);
           }).catch(() => showToast('Email failed — check EmailJS config', 'error'));
@@ -766,13 +767,13 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast, currentUser })
         if (eng?.email) {
           showToast(`Notifying ${eng.name}…`);
           sendTaskAssignmentEmail({
-            to_email:     eng.email,
-            to_name:      eng.name,
-            task_title:   data.title,
-            task_status:  data.status,
+            to_email: eng.email,
+            to_name: eng.name,
+            task_title: data.title,
+            task_status: data.status,
             project_name: proj?.name || 'N/A',
-            due_date:     data.dueDate || 'Not set',
-            assigned_by:  currentUser.name,
+            due_date: data.dueDate || 'Not set',
+            assigned_by: currentUser.name,
           }).then(r => {
             if (!r?.skipped) showToast(`Email sent to ${eng.email}`);
           }).catch(() => showToast('Email failed — check EmailJS config', 'error'));
@@ -848,7 +849,7 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast, currentUser })
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `tasks_export_${currentUser.id}_${new Date().toISOString().slice(0,10)}.csv`);
+    link.setAttribute("download", `tasks_export_${currentUser.id}_${new Date().toISOString().slice(0, 10)}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
