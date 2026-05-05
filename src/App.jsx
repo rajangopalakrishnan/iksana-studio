@@ -1,25 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { sendTaskAssignmentEmail } from "./emailService";
 
-// ─── Persistent Storage Helpers ────────────────────────────────────────────
-const STORAGE_VERSION = 'v4';
-const VERSION_KEY = 'iksana:version';
-
-// Wipe stale localStorage if version changed
-if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION) {
-  Object.values({
-    engineers: "iksana:engineers",
-    projects: "iksana:projects",
-    tasks: "iksana:tasks",
-    productivity: "iksana:productivity",
-    attendance: "iksana:attendance",
-    leaves: "iksana:leaves",
-    dismissed: "iksana:dismissed",
-    users: "iksana:users",
-    currentUser: "iksana:currentUser",
-  }).forEach(k => localStorage.removeItem(k));
-  localStorage.setItem(VERSION_KEY, STORAGE_VERSION);
-}
+import { loadFromFirebase, saveToFirebase } from "./firebase";
 
 const KEYS = {
   engineers: "iksana:engineers",
@@ -61,23 +43,7 @@ const SEED_LEAVES = [
 const LEAVE_TYPES = ["casual", "sick", "annual", "compensatory", "unpaid"];
 const LEAVE_COLORS = { casual: "#6366f1", sick: "#ef4444", annual: "#10b981", compensatory: "#f59e0b", unpaid: "#64748b" };
 
-function load(key, fallback) {
-  try {
-    const item = localStorage.getItem(key);
-    if (!item) return fallback;
-    const parsed = JSON.parse(item);
-    // If stored array is empty but we have seed data, use seed
-    if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(fallback) && fallback.length > 0) {
-      return fallback;
-    }
-    return parsed;
-  } catch {
-    return fallback;
-  }
-}
-function save(key, val) {
-  try { localStorage.setItem(key, JSON.stringify(val)); } catch { }
-}
+// Local storage functions have been replaced by firebase.js
 
 // ─── Seed Data ──────────────────────────────────────────────────────────────
 const SEED_ENGINEERS = [
@@ -139,28 +105,32 @@ export default function IksanaApp() {
   const [notifPanel, setNotifPanel] = useState(false);
 
   useEffect(() => {
-    const eng = load(KEYS.engineers, SEED_ENGINEERS);
-    const proj = load(KEYS.projects, SEED_PROJECTS);
-    const tsk = load(KEYS.tasks, SEED_TASKS);
-    const prod = load(KEYS.productivity, SEED_PRODUCTIVITY);
-    const att = load(KEYS.attendance, SEED_ATTENDANCE);
-    const lvs = load(KEYS.leaves, SEED_LEAVES);
-    const dis = load(KEYS.dismissed, []);
-    const usr = load(KEYS.users, SEED_USERS);
-    const cur = load(KEYS.currentUser, null);
-    setEngineers(eng); setProjects(proj); setTasks(tsk); setProductivity(prod);
-    setAttendance(att); setLeaves(lvs); setDismissed(dis); setUsers(usr); setCurrentUser(cur);
-    setLoading(false);
+    async function init() {
+      const eng = await loadFromFirebase(KEYS.engineers, SEED_ENGINEERS);
+      const proj = await loadFromFirebase(KEYS.projects, SEED_PROJECTS);
+      const tsk = await loadFromFirebase(KEYS.tasks, SEED_TASKS);
+      const prod = await loadFromFirebase(KEYS.productivity, SEED_PRODUCTIVITY);
+      const att = await loadFromFirebase(KEYS.attendance, SEED_ATTENDANCE);
+      const lvs = await loadFromFirebase(KEYS.leaves, SEED_LEAVES);
+      const dis = await loadFromFirebase(KEYS.dismissed, []);
+      const usr = await loadFromFirebase(KEYS.users, SEED_USERS);
+      const cur = await loadFromFirebase(KEYS.currentUser, null);
+      
+      setEngineers(eng); setProjects(proj); setTasks(tsk); setProductivity(prod);
+      setAttendance(att); setLeaves(lvs); setDismissed(dis); setUsers(usr); setCurrentUser(cur);
+      setLoading(false);
+    }
+    init();
   }, []);
 
   const persist = useCallback((key, setter, val) => {
     setter(val);
-    save(key, val);
+    saveToFirebase(key, val);
   }, []);
 
   const persistUser = useCallback((user) => {
     setCurrentUser(user);
-    save(KEYS.currentUser, user);
+    saveToFirebase(KEYS.currentUser, user);
   }, []);
 
   const showToast = (msg, type = "success") => {
