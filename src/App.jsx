@@ -2,6 +2,25 @@ import { useState, useEffect, useCallback } from "react";
 import { sendTaskAssignmentEmail } from "./emailService";
 
 // ─── Persistent Storage Helpers ────────────────────────────────────────────
+const STORAGE_VERSION = 'v3';
+const VERSION_KEY = 'iksana:version';
+
+// Wipe stale localStorage if version changed
+if (localStorage.getItem(VERSION_KEY) !== STORAGE_VERSION) {
+  Object.values({
+    engineers: "iksana:engineers",
+    projects: "iksana:projects",
+    tasks: "iksana:tasks",
+    productivity: "iksana:productivity",
+    attendance: "iksana:attendance",
+    leaves: "iksana:leaves",
+    dismissed: "iksana:dismissed",
+    users: "iksana:users",
+    currentUser: "iksana:currentUser",
+  }).forEach(k => localStorage.removeItem(k));
+  localStorage.setItem(VERSION_KEY, STORAGE_VERSION);
+}
+
 const KEYS = {
   engineers: "iksana:engineers",
   projects: "iksana:projects",
@@ -315,7 +334,7 @@ function Login({ onLogin, users, setUsers }) {
       setError('Enter your email and password');
       return;
     }
-    const user = users.find(u => u.email === email && u.password === password);
+    const user = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password);
     if (user) {
       onLogin(user);
     } else {
