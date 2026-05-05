@@ -1020,7 +1020,7 @@ function TaskForm({ task, engineers, projects, onSave, onClose }) {
 }
 
 // ─── Engineers ───────────────────────────────────────────────────────────────
-function Engineers({ engineers, tasks, setEngineers, showToast }) {
+function Engineers({ engineers, tasks, setEngineers, showToast, currentUser }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
 
@@ -1033,6 +1033,18 @@ function Engineers({ engineers, tasks, setEngineers, showToast }) {
       showToast("Engineer added");
     }
     setShowForm(false); setEditing(null);
+  };
+
+  const handleDeleteEngineer = (id) => {
+    const isAuthorized = currentUser.role === "admin" || currentUser.email === "btp@iksana.tech" || currentUser.id === "e3";
+    if (!isAuthorized) {
+      showToast("Unauthorized: Only Admin or Biburaj can delete engineers", "error");
+      return;
+    }
+    if (window.confirm("Are you sure you want to delete this engineer? All their history will be removed.")) {
+      setEngineers(engineers.filter(e => e.id !== id));
+      showToast("Engineer deleted", "error");
+    }
   };
 
   return (
@@ -1073,6 +1085,9 @@ function Engineers({ engineers, tasks, setEngineers, showToast }) {
                   <button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 11 }} onClick={() => { setEngineers(engineers.map(e => e.id === eng.id ? { ...e, active: !e.active } : e)); }}>
                     {eng.active ? "Deactivate" : "Activate"}
                   </button>
+                  {(currentUser.role === "admin" || currentUser.email === "btp@iksana.tech" || currentUser.id === "e3") && (
+                    <button className="btn btn-danger" style={{ padding: "4px 10px", fontSize: 11 }} onClick={() => handleDeleteEngineer(eng.id)}>Delete</button>
+                  )}
                 </div>
               </div>
             </div>
