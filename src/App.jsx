@@ -52,7 +52,11 @@ async function load(key, fallback) {
     const apiKey = key.replace('iksana:', '');
     const res = await fetch(`/api/${apiKey}`);
     if (res.ok) {
-      return await res.json();
+      const data = await res.json();
+      if (Array.isArray(data) && data.length === 0 && Array.isArray(fallback) && fallback.length > 0) {
+        return fallback;
+      }
+      return data;
     }
   } catch {}
   return fallback;
@@ -64,7 +68,7 @@ async function save(key, val) {
   }
   try {
     const apiKey = key.replace('iksana:', '');
-    await fetch(`http://localhost:5000/api/${apiKey}`, {
+    await fetch(`/api/${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(val),
@@ -314,14 +318,97 @@ export default function IksanaApp() {
 
 // ─── Login ────────────────────────────────────────────────────────────────────
 function Login({ onLogin, users }) {
+  const [mode, setMode] = useState('signin');
   const [email, setEmail] = useState("");
+  const [name, setName] = useState("");
   const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState("");
   const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
   const [focused, setFocused] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    const user = users.find(u => u.email === email && u.password === password);
-    if (user) { onLogin(user); } else { setError("Invalid credentials"); }
+  const handleLogin = async () => {
+    setError("");
+    if (!email || !password) {
+      setError('Enter your email and password');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const data = await res.json();
+      if (res.ok && data.user) {
+        onLogin(data.user);
+      } else {
+        setError(data.message || 'Unable to sign in');
+      }
+    } catch (e) {
+      setError('Unable to reach the server.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendOtp = async () => {
+    setError("");
+    if (!email) {
+      setError('Please enter your email address');
+      return;
+    }
+    if (!name) {
+      setError('Please enter your name');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/request-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setMode('verify');
+        setInfo(data.message || 'Verification code sent');
+      } else {
+        setError(data.message || 'Unable to send OTP');
+      }
+    } catch {
+      setError('Unable to reach the server.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    setError("");
+    if (!otp || !password) {
+      setError('Enter the OTP and choose a password');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, otp, name }),
+      });
+      const data = await res.json();
+      if (res.ok && data.user) {
+        onLogin(data.user);
+      } else {
+        setError(data.message || 'OTP verification failed');
+      }
+    } catch {
+      setError('Unable to reach the server.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const features = [
@@ -395,8 +482,16 @@ function Login({ onLogin, users }) {
         {/* RIGHT PANEL */}
         <div style={{ flex: 1, background: "#13151f", padding: "48px 44px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ marginBottom: 32 }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.02em", marginBottom: 6 }}>Welcome back</div>
-            <div style={{ fontSize: 13, color: "#4a5568" }}>Sign in to continue to your studio dashboard.</div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.02em", marginBottom: 6 }}>
+              {mode === 'signin' ? 'Welcome back' : mode === 'verify' ? 'Verify your account' : 'Create a new account'}
+            </div>
+            <div style={{ fontSize: 13, color: "#4a5568" }}>
+              {mode === 'signin'
+                ? 'Sign in to continue to your studio dashboard.'
+                : mode === 'verify'
+                ? 'Enter the code we sent to your email and choose a password.'
+                : 'Start by sending a verification code to your email.'}
+            </div>
           </div>
 
           {/* Email field */}
@@ -421,6 +516,29 @@ function Login({ onLogin, users }) {
             </div>
           </div>
 
+          {(mode === 'signup' || mode === 'verify') && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>Full Name</label>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: focused === "name" ? "#818cf8" : "#374151", fontSize: 14, transition: "color 0.15s", pointerEvents: "none" }}>✦</span>
+                <input
+                  value={name}
+                  onChange={e => { setName(e.target.value); setError(""); setInfo(""); }}
+                  onFocus={() => setFocused("name")}
+                  onBlur={() => setFocused(null)}
+                  placeholder="Your name"
+                  style={{
+                    width: "100%", background: "#0c0e14", border: `1px solid ${focused === "name" ? "#6366f1" : "#1e2133"}`,
+                    color: "#e2e8f0", borderRadius: 10, padding: "12px 14px 12px 38px",
+                    fontSize: 13, fontFamily: "inherit", outline: "none",
+                    boxShadow: focused === "name" ? "0 0 0 3px rgba(99,102,241,0.12)" : "none",
+                    transition: "all 0.15s", boxSizing: "border-box"
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
           {/* Password field */}
           <div style={{ marginBottom: 24 }}>
             <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>Password</label>
@@ -432,7 +550,7 @@ function Login({ onLogin, users }) {
                 onChange={e => { setPassword(e.target.value); setError(""); }}
                 onFocus={() => setFocused("pass")}
                 onBlur={() => setFocused(null)}
-                onKeyDown={e => e.key === "Enter" && handleLogin()}
+                onKeyDown={e => e.key === "Enter" && (mode === 'signin' ? handleLogin() : mode === 'verify' ? handleVerifyOtp() : handleSendOtp())}
                 placeholder="••••••••"
                 style={{
                   width: "100%", background: "#0c0e14", border: `1px solid ${focused === "pass" ? "#6366f1" : "#1e2133"}`,
@@ -454,32 +572,53 @@ function Login({ onLogin, users }) {
               ⚠ {error}
             </div>
           )}
+          {info && (
+            <div style={{
+              background: "#2563eb15", border: "1px solid #2563eb30", borderRadius: 8,
+              padding: "10px 14px", fontSize: 12, color: "#bfdbfe", fontWeight: 500, marginBottom: 16
+            }}>
+              ℹ {info}
+            </div>
+          )}
 
           {/* Submit */}
           <button
-            onClick={handleLogin}
+            onClick={mode === 'signin' ? handleLogin : mode === 'verify' ? handleVerifyOtp : handleSendOtp}
+            disabled={loading}
             style={{
               width: "100%", padding: "13px", background: "linear-gradient(135deg, #6366f1, #818cf8)",
               color: "white", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600,
               fontFamily: "inherit", cursor: "pointer", letterSpacing: "0.01em",
-              boxShadow: "0 4px 20px rgba(99,102,241,0.35)", transition: "all 0.15s"
+              boxShadow: "0 4px 20px rgba(99,102,241,0.35)", transition: "all 0.15s", opacity: loading ? 0.75 : 1
             }}
             onMouseEnter={e => e.target.style.boxShadow = "0 6px 28px rgba(99,102,241,0.5)"}
             onMouseLeave={e => e.target.style.boxShadow = "0 4px 20px rgba(99,102,241,0.35)"}
           >
-            Sign In →
+            {loading ? 'Working…' : mode === 'signin' ? 'Sign In →' : mode === 'verify' ? 'Verify & Join →' : 'Send OTP'}
           </button>
 
           <div style={{ marginTop: 28, padding: "16px", background: "#0c0e14", borderRadius: 10, border: "1px solid #1e2133" }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Access Notes</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ fontSize: 12, color: "#4a5568" }}>
-                This app does not support self sign-up. Please use credentials provided by your administrator.
+                Sign up with your studio email and we will send a verification code before creating your account.
               </div>
               <div style={{ fontSize: 12, color: "#4a5568" }}>
-                Example user login: any engineer email from the system with password <strong style={{ color: "#e2e8f0" }}>user</strong>.
+                Existing users may sign in with email and password. New task alerts are delivered by email if SMTP is configured.
               </div>
             </div>
+          </div>
+          <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <button
+              className="btn btn-ghost"
+              style={{ fontSize: 12, padding: "10px 14px", width: "100%", marginRight: 8 }}
+              onClick={() => {
+                setMode(mode === 'signin' ? 'signup' : 'signin');
+                setError(''); setInfo(''); setOtp(''); setPassword('');
+              }}
+            >
+              {mode === 'signin' ? 'Create account' : 'Back to sign in'}
+            </button>
           </div>
         </div>
       </div>
