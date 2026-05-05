@@ -106,15 +106,17 @@ export default function IksanaApp() {
 
   useEffect(() => {
     async function init() {
-      const eng = await loadFromFirebase(KEYS.engineers, SEED_ENGINEERS);
-      const proj = await loadFromFirebase(KEYS.projects, SEED_PROJECTS);
-      const tsk = await loadFromFirebase(KEYS.tasks, SEED_TASKS);
-      const prod = await loadFromFirebase(KEYS.productivity, SEED_PRODUCTIVITY);
-      const att = await loadFromFirebase(KEYS.attendance, SEED_ATTENDANCE);
-      const lvs = await loadFromFirebase(KEYS.leaves, SEED_LEAVES);
-      const dis = await loadFromFirebase(KEYS.dismissed, []);
-      const usr = await loadFromFirebase(KEYS.users, SEED_USERS);
-      const cur = await loadFromFirebase(KEYS.currentUser, null);
+      const [eng, proj, tsk, prod, att, lvs, dis, usr, cur] = await Promise.all([
+        loadFromFirebase(KEYS.engineers, SEED_ENGINEERS),
+        loadFromFirebase(KEYS.projects, SEED_PROJECTS),
+        loadFromFirebase(KEYS.tasks, SEED_TASKS),
+        loadFromFirebase(KEYS.productivity, SEED_PRODUCTIVITY),
+        loadFromFirebase(KEYS.attendance, SEED_ATTENDANCE),
+        loadFromFirebase(KEYS.leaves, SEED_LEAVES),
+        loadFromFirebase(KEYS.dismissed, []),
+        loadFromFirebase(KEYS.users, SEED_USERS),
+        loadFromFirebase(KEYS.currentUser, null)
+      ]);
       
       setEngineers(eng); setProjects(proj); setTasks(tsk); setProductivity(prod);
       setAttendance(att); setLeaves(lvs); setDismissed(dis); setUsers(usr); setCurrentUser(cur);
