@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { sendTaskAssignmentEmail } from "./emailService";
 
 // ─── Persistent Storage Helpers ────────────────────────────────────────────
 const KEYS = {
@@ -41,39 +42,22 @@ const SEED_LEAVES = [
 const LEAVE_TYPES = ["casual", "sick", "annual", "compensatory", "unpaid"];
 const LEAVE_COLORS = { casual: "#6366f1", sick: "#ef4444", annual: "#10b981", compensatory: "#f59e0b", unpaid: "#64748b" };
 
-async function load(key, fallback) {
-  if (key === KEYS.currentUser || key === KEYS.dismissed) {
-    try {
-      const item = localStorage.getItem(key);
-      return item ? JSON.parse(item) : fallback;
-    } catch { return fallback; }
-  }
+function load(key, fallback) {
   try {
-    const apiKey = key.replace('iksana:', '');
-    const res = await fetch(`/api/${apiKey}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data) && data.length === 0 && Array.isArray(fallback) && fallback.length > 0) {
-        return fallback;
-      }
-      return data;
+    const item = localStorage.getItem(key);
+    if (!item) return fallback;
+    const parsed = JSON.parse(item);
+    // If stored array is empty but we have seed data, use seed
+    if (Array.isArray(parsed) && parsed.length === 0 && Array.isArray(fallback) && fallback.length > 0) {
+      return fallback;
     }
-  } catch { }
-  return fallback;
-}
-async function save(key, val) {
-  if (key === KEYS.currentUser || key === KEYS.dismissed) {
-    try { localStorage.setItem(key, JSON.stringify(val)); } catch { }
-    return;
+    return parsed;
+  } catch {
+    return fallback;
   }
-  try {
-    const apiKey = key.replace('iksana:', '');
-    await fetch(`/api/${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(val),
-    });
-  } catch { }
+}
+function save(key, val) {
+  try { localStorage.setItem(key, JSON.stringify(val)); } catch { }
 }
 
 // ─── Seed Data ──────────────────────────────────────────────────────────────
@@ -153,32 +137,28 @@ export default function IksanaApp() {
   const [notifPanel, setNotifPanel] = useState(false);
 
   useEffect(() => {
-    (async () => {
-      const [eng, proj, tsk, prod, att, lvs, dis, usr, cur] = await Promise.all([
-        load(KEYS.engineers, SEED_ENGINEERS),
-        load(KEYS.projects, SEED_PROJECTS),
-        load(KEYS.tasks, SEED_TASKS),
-        load(KEYS.productivity, SEED_PRODUCTIVITY),
-        load(KEYS.attendance, SEED_ATTENDANCE),
-        load(KEYS.leaves, SEED_LEAVES),
-        load(KEYS.dismissed, []),
-        load(KEYS.users, SEED_USERS),
-        load(KEYS.currentUser, null),
-      ]);
-      setEngineers(eng); setProjects(proj); setTasks(tsk); setProductivity(prod);
-      setAttendance(att); setLeaves(lvs); setDismissed(dis); setUsers(usr); setCurrentUser(cur);
-      setLoading(false);
-    })();
+    const eng = load(KEYS.engineers, SEED_ENGINEERS);
+    const proj = load(KEYS.projects, SEED_PROJECTS);
+    const tsk = load(KEYS.tasks, SEED_TASKS);
+    const prod = load(KEYS.productivity, SEED_PRODUCTIVITY);
+    const att = load(KEYS.attendance, SEED_ATTENDANCE);
+    const lvs = load(KEYS.leaves, SEED_LEAVES);
+    const dis = load(KEYS.dismissed, []);
+    const usr = load(KEYS.users, SEED_USERS);
+    const cur = load(KEYS.currentUser, null);
+    setEngineers(eng); setProjects(proj); setTasks(tsk); setProductivity(prod);
+    setAttendance(att); setLeaves(lvs); setDismissed(dis); setUsers(usr); setCurrentUser(cur);
+    setLoading(false);
   }, []);
 
-  const persist = useCallback(async (key, setter, val) => {
+  const persist = useCallback((key, setter, val) => {
     setter(val);
-    await save(key, val);
+    save(key, val);
   }, []);
 
-  const persistUser = useCallback(async (user) => {
+  const persistUser = useCallback((user) => {
     setCurrentUser(user);
-    await save(KEYS.currentUser, user);
+    save(KEYS.currentUser, user);
   }, []);
 
   const showToast = (msg, type = "success") => {
@@ -342,19 +322,25 @@ function Login({ onLogin, users, setUsers }) {
     }
   };
 
-  const handleSignup = () => {
+  const handleSetPassword = () => {
     setError(""); setInfo("");
-    if (!email || !name || !password) {
-      setError('Please fill in all fields');
+    if (!email || !password) {
+      setError('Please enter your email and a new password');
       return;
     }
-    if (users.find(u => u.email === email)) {
-      setError('Email already exists');
+    if (password.length < 4) {
+      setError('Password must be at least 4 characters');
       return;
     }
-    const newUser = { id: "u" + Date.now(), email, name, password, role: "user" };
-    setUsers([...users, newUser]);
-    onLogin(newUser);
+    const userIndex = users.findIndex(u => u.email.toLowerCase() === email.toLowerCase());
+    if (userIndex === -1) {
+      setError('Email not found. Please contact your admin.');
+      return;
+    }
+    const updatedUsers = [...users];
+    updatedUsers[userIndex] = { ...updatedUsers[userIndex], password };
+    setUsers(updatedUsers);
+    onLogin(updatedUsers[userIndex]);
   };
 
   const handleSendForgotOtp = () => {
@@ -466,7 +452,7 @@ function Login({ onLogin, users, setUsers }) {
         <div style={{ flex: 1, background: "#13151f", padding: "48px 44px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ marginBottom: 32 }}>
             <div style={{ fontSize: 22, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.02em", marginBottom: 6 }}>
-              {mode === 'signin' ? 'Welcome back' : mode === 'forgot' ? 'Reset Password' : mode === 'verify-forgot' ? 'Verify OTP' : 'Sign up'}
+              {mode === 'signin' ? 'Welcome back' : mode === 'forgot' ? 'Reset Password' : mode === 'verify-forgot' ? 'Verify OTP' : 'Set Your Password'}
             </div>
             <div style={{ fontSize: 13, color: "#4a5568" }}>
               {mode === 'signin'
@@ -475,7 +461,7 @@ function Login({ onLogin, users, setUsers }) {
                   ? 'Enter your email to receive an OTP.'
                   : mode === 'verify-forgot'
                     ? 'Enter the OTP and your new password.'
-                    : 'Create your account to join the studio.'}
+                    : 'Enter your studio email and choose a password.'}
             </div>
           </div>
 
@@ -524,32 +510,11 @@ function Login({ onLogin, users, setUsers }) {
             </div>
           )}
 
-          {mode === 'signup' && (
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>Full Name</label>
-              <div style={{ position: "relative" }}>
-                <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: focused === "name" ? "#818cf8" : "#374151", fontSize: 14, transition: "color 0.15s", pointerEvents: "none" }}>✦</span>
-                <input
-                  value={name}
-                  onChange={e => { setName(e.target.value); setError(""); setInfo(""); }}
-                  onFocus={() => setFocused("name")}
-                  onBlur={() => setFocused(null)}
-                  placeholder="Your name"
-                  style={{
-                    width: "100%", background: "#0c0e14", border: `1px solid ${focused === "name" ? "#6366f1" : "#1e2133"}`,
-                    color: "#e2e8f0", borderRadius: 10, padding: "12px 14px 12px 38px",
-                    fontSize: 13, fontFamily: "inherit", outline: "none",
-                    boxShadow: focused === "name" ? "0 0 0 3px rgba(99,102,241,0.12)" : "none",
-                    transition: "all 0.15s", boxSizing: "border-box"
-                  }}
-                />
-              </div>
-            </div>
-          )}
+
 
           {mode !== 'forgot' && (
             <div style={{ marginBottom: 24 }}>
-              <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>{mode === 'verify-forgot' ? 'New Password' : 'Password'}</label>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>{mode === 'verify-forgot' || mode === 'set-password' ? 'New Password' : 'Password'}</label>
               <div style={{ position: "relative" }}>
                 <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: focused === "pass" ? "#818cf8" : "#374151", fontSize: 14, transition: "color 0.15s", pointerEvents: "none" }}>◎</span>
                 <input
@@ -597,7 +562,7 @@ function Login({ onLogin, users, setUsers }) {
 
           {/* Submit */}
           <button
-            onClick={mode === 'signin' ? handleLogin : mode === 'signup' ? handleSignup : mode === 'forgot' ? handleSendForgotOtp : handleResetPassword}
+            onClick={mode === 'signin' ? handleLogin : mode === 'set-password' ? handleSetPassword : mode === 'forgot' ? handleSendForgotOtp : handleResetPassword}
             disabled={loading}
             style={{
               width: "100%", padding: "13px", background: "linear-gradient(135deg, #6366f1, #818cf8)",
@@ -608,18 +573,15 @@ function Login({ onLogin, users, setUsers }) {
             onMouseEnter={e => e.target.style.boxShadow = "0 6px 28px rgba(99,102,241,0.5)"}
             onMouseLeave={e => e.target.style.boxShadow = "0 4px 20px rgba(99,102,241,0.35)"}
           >
-            {loading ? 'Working…' : mode === 'signin' ? 'Sign In →' : mode === 'signup' ? 'Join Studio →' : mode === 'forgot' ? 'Send OTP' : 'Reset Password'}
+            {loading ? 'Working…' : mode === 'signin' ? 'Sign In →' : mode === 'set-password' ? 'Set Password & Sign In →' : mode === 'forgot' ? 'Send OTP' : 'Reset Password'}
           </button>
 
           <div style={{ marginTop: 28, padding: "16px", background: "#0c0e14", borderRadius: 10, border: "1px solid #1e2133" }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Access Notes</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              <div style={{ fontSize: 12, color: "#4a5568" }}>
-                Sign up with your studio email to create your account immediately. No verification required for local mode.
-              </div>
-              <div style={{ fontSize: 12, color: "#4a5568" }}>
-                Existing users may sign in with email and password. Forgot password flow uses a mock OTP (1234).
-              </div>
+            <div style={{ fontSize: 12, color: "#4a5568", lineHeight: 1.6 }}>
+              {mode === 'set-password'
+                ? 'Enter your studio email address. If you are a registered team member, you can set your own password.'
+                : 'Sign in with your studio email and password. First time? Click below to set your password.'}
             </div>
           </div>
           <div style={{ marginTop: 16, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -627,11 +589,11 @@ function Login({ onLogin, users, setUsers }) {
               className="btn btn-ghost"
               style={{ fontSize: 12, padding: "10px 14px", width: "100%", marginRight: 8 }}
               onClick={() => {
-                setMode(mode === 'signin' ? 'signup' : 'signin');
+                setMode(mode === 'signin' ? 'set-password' : 'signin');
                 setError(''); setInfo(''); setOtp(''); setPassword('');
               }}
             >
-              {mode === 'signin' ? 'Sign up' : 'Back to sign in'}
+              {mode === 'signin' ? 'First time? Set your password' : 'Back to sign in'}
             </button>
           </div>
         </div>
@@ -772,19 +734,48 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast, currentUser })
   );
 
   const handleSave = (data) => {
+    const proj = projects.find(p => p.id === data.projectId);
     if (editing) {
-      if (editing.assignee !== data.assignee) {
+      const assigneeChanged = editing.assignee !== data.assignee;
+      setTasks(tasks.map(t => t.id === editing.id ? { ...editing, ...data } : t));
+      if (assigneeChanged && data.assignee) {
         const eng = engineers.find(e => e.id === data.assignee);
-        showToast(`Task assigned to ${eng?.name}`, "success");
-        // Simulate email alert for user
-        if (currentUser.role === "admin" && eng) {
-          setTimeout(() => alert(`Email sent to ${eng.email}: New task "${data.title}" assigned.`), 1000);
+        if (eng?.email) {
+          showToast(`Notifying ${eng.name}…`);
+          sendTaskAssignmentEmail({
+            to_email:     eng.email,
+            to_name:      eng.name,
+            task_title:   data.title,
+            task_status:  data.status,
+            project_name: proj?.name || 'N/A',
+            due_date:     data.dueDate || 'Not set',
+            assigned_by:  currentUser.name,
+          }).then(r => {
+            if (!r?.skipped) showToast(`Email sent to ${eng.email}`);
+          }).catch(() => showToast('Email failed — check EmailJS config', 'error'));
         }
       }
-      setTasks(tasks.map(t => t.id === editing.id ? { ...editing, ...data } : t));
       showToast("Task updated");
     } else {
-      setTasks([...tasks, { id: "t" + uid(), ...data, loggedHours: 0, createdAt: new Date().toISOString().slice(0, 10) }]);
+      const newTask = { id: "t" + uid(), ...data, loggedHours: 0, createdAt: new Date().toISOString().slice(0, 10) };
+      setTasks([...tasks, newTask]);
+      if (data.assignee) {
+        const eng = engineers.find(e => e.id === data.assignee);
+        if (eng?.email) {
+          showToast(`Notifying ${eng.name}…`);
+          sendTaskAssignmentEmail({
+            to_email:     eng.email,
+            to_name:      eng.name,
+            task_title:   data.title,
+            task_status:  data.status,
+            project_name: proj?.name || 'N/A',
+            due_date:     data.dueDate || 'Not set',
+            assigned_by:  currentUser.name,
+          }).then(r => {
+            if (!r?.skipped) showToast(`Email sent to ${eng.email}`);
+          }).catch(() => showToast('Email failed — check EmailJS config', 'error'));
+        }
+      }
       showToast("Task created");
     }
     setShowForm(false); setEditing(null);
