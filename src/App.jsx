@@ -229,7 +229,7 @@ export default function IksanaApp() {
   if (!currentUser) return (
     <div style={{ minHeight: "100vh", background: "#0c0e14", color: "#e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       {appStyles}
-      <Login onLogin={persistUser} users={users} />
+      <Login onLogin={persistUser} users={users} setUsers={v => persist(KEYS.users, setUsers, v)} />
     </div>
   );
 
@@ -317,8 +317,8 @@ export default function IksanaApp() {
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
-function Login({ onLogin, users }) {
-  const [mode, setMode] = useState('signin');
+function Login({ onLogin, users, setUsers }) {
+  const [mode, setMode] = useState('signin'); // signin, signup, forgot, verify-forgot
   const [email, setEmail] = useState("");
   const [name, setName] = useState("");
   const [password, setPassword] = useState("");
@@ -328,87 +328,70 @@ function Login({ onLogin, users }) {
   const [focused, setFocused] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async () => {
-    setError("");
+  const handleLogin = () => {
+    setError(""); setInfo("");
     if (!email || !password) {
       setError('Enter your email and password');
       return;
     }
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (res.ok && data.user) {
-        onLogin(data.user);
-      } else {
-        setError(data.message || 'Unable to sign in');
-      }
-    } catch (e) {
-      setError('Unable to reach the server.');
-    } finally {
-      setLoading(false);
+    const user = users.find(u => u.email === email && u.password === password);
+    if (user) {
+      onLogin(user);
+    } else {
+      setError('Invalid email or password');
     }
   };
 
-  const handleSendOtp = async () => {
-    setError("");
+  const handleSignup = () => {
+    setError(""); setInfo("");
+    if (!email || !name || !password) {
+      setError('Please fill in all fields');
+      return;
+    }
+    if (users.find(u => u.email === email)) {
+      setError('Email already exists');
+      return;
+    }
+    const newUser = { id: "u" + Date.now(), email, name, password, role: "user" };
+    setUsers([...users, newUser]);
+    onLogin(newUser);
+  };
+
+  const handleSendForgotOtp = () => {
+    setError(""); setInfo("");
     if (!email) {
       setError('Please enter your email address');
       return;
     }
-    if (!name) {
-      setError('Please enter your name');
+    if (!users.find(u => u.email === email)) {
+      setError('Email not found in our records');
       return;
     }
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/request-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, name }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setMode('verify');
-        setInfo(data.message || 'Verification code sent');
-      } else {
-        setError(data.message || 'Unable to send OTP');
-      }
-    } catch {
-      setError('Unable to reach the server.');
-    } finally {
-      setLoading(false);
-    }
+    setMode('verify-forgot');
+    setInfo('Verification code sent to your email (use 1234)');
   };
 
-  const handleVerifyOtp = async () => {
+  const handleResetPassword = () => {
     setError("");
     if (!otp || !password) {
-      setError('Enter the OTP and choose a password');
+      setError('Enter the OTP and choose a new password');
       return;
     }
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/verify-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, otp, name }),
-      });
-      const data = await res.json();
-      if (res.ok && data.user) {
-        onLogin(data.user);
-      } else {
-        setError(data.message || 'OTP verification failed');
-      }
-    } catch {
-      setError('Unable to reach the server.');
-    } finally {
-      setLoading(false);
+    if (otp !== "1234") {
+      setError('Invalid OTP');
+      return;
     }
+    const userIndex = users.findIndex(u => u.email === email);
+    if (userIndex === -1) {
+      setError('User not found');
+      return;
+    }
+    const updatedUsers = [...users];
+    updatedUsers[userIndex] = { ...updatedUsers[userIndex], password };
+    setUsers(updatedUsers);
+    setMode('signin');
+    setOtp(""); setPassword("");
+    setInfo('Password reset successfully. Please sign in.');
   };
 
   const features = [
@@ -483,14 +466,16 @@ function Login({ onLogin, users }) {
         <div style={{ flex: 1, background: "#13151f", padding: "48px 44px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ marginBottom: 32 }}>
             <div style={{ fontSize: 22, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.02em", marginBottom: 6 }}>
-              {mode === 'signin' ? 'Welcome back' : mode === 'verify' ? 'Verify your account' : 'Sign up'}
+              {mode === 'signin' ? 'Welcome back' : mode === 'forgot' ? 'Reset Password' : mode === 'verify-forgot' ? 'Verify OTP' : 'Sign up'}
             </div>
             <div style={{ fontSize: 13, color: "#4a5568" }}>
               {mode === 'signin'
                 ? 'Sign in to continue to your studio dashboard.'
-                : mode === 'verify'
-                  ? 'Enter the code we sent to your email and choose a password.'
-                  : 'Start by sending a verification code to your email.'}
+                : mode === 'forgot'
+                  ? 'Enter your email to receive an OTP.'
+                  : mode === 'verify-forgot'
+                    ? 'Enter the OTP and your new password.'
+                    : 'Create your account to join the studio.'}
             </div>
           </div>
 
@@ -516,7 +501,30 @@ function Login({ onLogin, users }) {
             </div>
           </div>
 
-          {(mode === 'signup' || mode === 'verify') && (
+          {mode === 'verify-forgot' && (
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>OTP Code</label>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: focused === "otp" ? "#818cf8" : "#374151", fontSize: 14, transition: "color 0.15s", pointerEvents: "none" }}>#</span>
+                <input
+                  value={otp}
+                  onChange={e => { setOtp(e.target.value); setError(""); }}
+                  onFocus={() => setFocused("otp")}
+                  onBlur={() => setFocused(null)}
+                  placeholder="1234"
+                  style={{
+                    width: "100%", background: "#0c0e14", border: `1px solid ${focused === "otp" ? "#6366f1" : "#1e2133"}`,
+                    color: "#e2e8f0", borderRadius: 10, padding: "12px 14px 12px 38px",
+                    fontSize: 13, fontFamily: "inherit", outline: "none",
+                    boxShadow: focused === "otp" ? "0 0 0 3px rgba(99,102,241,0.12)" : "none",
+                    transition: "all 0.15s", boxSizing: "border-box"
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {mode === 'signup' && (
             <div style={{ marginBottom: 16 }}>
               <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>Full Name</label>
               <div style={{ position: "relative" }}>
@@ -539,29 +547,35 @@ function Login({ onLogin, users }) {
             </div>
           )}
 
-          {/* Password field */}
-          <div style={{ marginBottom: 24 }}>
-            <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>Password</label>
-            <div style={{ position: "relative" }}>
-              <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: focused === "pass" ? "#818cf8" : "#374151", fontSize: 14, transition: "color 0.15s", pointerEvents: "none" }}>◎</span>
-              <input
-                type="password"
-                value={password}
-                onChange={e => { setPassword(e.target.value); setError(""); }}
-                onFocus={() => setFocused("pass")}
-                onBlur={() => setFocused(null)}
-                onKeyDown={e => e.key === "Enter" && (mode === 'signin' ? handleLogin() : mode === 'verify' ? handleVerifyOtp() : handleSendOtp())}
-                placeholder="••••••••"
-                style={{
-                  width: "100%", background: "#0c0e14", border: `1px solid ${focused === "pass" ? "#6366f1" : "#1e2133"}`,
-                  color: "#e2e8f0", borderRadius: 10, padding: "12px 14px 12px 38px",
-                  fontSize: 13, fontFamily: "inherit", outline: "none",
-                  boxShadow: focused === "pass" ? "0 0 0 3px rgba(99,102,241,0.12)" : "none",
-                  transition: "all 0.15s", boxSizing: "border-box"
-                }}
-              />
+          {mode !== 'forgot' && (
+            <div style={{ marginBottom: 24 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>{mode === 'verify-forgot' ? 'New Password' : 'Password'}</label>
+              <div style={{ position: "relative" }}>
+                <span style={{ position: "absolute", left: 14, top: "50%", transform: "translateY(-50%)", color: focused === "pass" ? "#818cf8" : "#374151", fontSize: 14, transition: "color 0.15s", pointerEvents: "none" }}>◎</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={e => { setPassword(e.target.value); setError(""); }}
+                  onFocus={() => setFocused("pass")}
+                  onBlur={() => setFocused(null)}
+                  onKeyDown={e => e.key === "Enter" && (mode === 'signin' ? handleLogin() : mode === 'verify-forgot' ? handleResetPassword() : mode === 'signup' ? handleSignup() : handleSendForgotOtp())}
+                  placeholder="••••••••"
+                  style={{
+                    width: "100%", background: "#0c0e14", border: `1px solid ${focused === "pass" ? "#6366f1" : "#1e2133"}`,
+                    color: "#e2e8f0", borderRadius: 10, padding: "12px 14px 12px 38px",
+                    fontSize: 13, fontFamily: "inherit", outline: "none",
+                    boxShadow: focused === "pass" ? "0 0 0 3px rgba(99,102,241,0.12)" : "none",
+                    transition: "all 0.15s", boxSizing: "border-box"
+                  }}
+                />
+              </div>
+              {mode === 'signin' && (
+                <div style={{ textAlign: "right", marginTop: 8 }}>
+                  <span style={{ fontSize: 11, color: "#6366f1", cursor: "pointer" }} onClick={() => { setMode('forgot'); setError(''); setInfo(''); }}>Forgot Password?</span>
+                </div>
+              )}
             </div>
-          </div>
+          )}
 
           {/* Error */}
           {error && (
@@ -583,7 +597,7 @@ function Login({ onLogin, users }) {
 
           {/* Submit */}
           <button
-            onClick={mode === 'signin' ? handleLogin : mode === 'verify' ? handleVerifyOtp : handleSendOtp}
+            onClick={mode === 'signin' ? handleLogin : mode === 'signup' ? handleSignup : mode === 'forgot' ? handleSendForgotOtp : handleResetPassword}
             disabled={loading}
             style={{
               width: "100%", padding: "13px", background: "linear-gradient(135deg, #6366f1, #818cf8)",
@@ -594,17 +608,17 @@ function Login({ onLogin, users }) {
             onMouseEnter={e => e.target.style.boxShadow = "0 6px 28px rgba(99,102,241,0.5)"}
             onMouseLeave={e => e.target.style.boxShadow = "0 4px 20px rgba(99,102,241,0.35)"}
           >
-            {loading ? 'Working…' : mode === 'signin' ? 'Sign In →' : mode === 'verify' ? 'Verify & Join →' : 'Send OTP'}
+            {loading ? 'Working…' : mode === 'signin' ? 'Sign In →' : mode === 'signup' ? 'Join Studio →' : mode === 'forgot' ? 'Send OTP' : 'Reset Password'}
           </button>
 
           <div style={{ marginTop: 28, padding: "16px", background: "#0c0e14", borderRadius: 10, border: "1px solid #1e2133" }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Access Notes</div>
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ fontSize: 12, color: "#4a5568" }}>
-                Sign up with your studio email and we will send a verification code before creating your account.
+                Sign up with your studio email to create your account immediately. No verification required for local mode.
               </div>
               <div style={{ fontSize: 12, color: "#4a5568" }}>
-                Existing users may sign in with email and password. New task alerts are delivered by email if SMTP is configured.
+                Existing users may sign in with email and password. Forgot password flow uses a mock OTP (1234).
               </div>
             </div>
           </div>
