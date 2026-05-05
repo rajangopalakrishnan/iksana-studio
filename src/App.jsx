@@ -784,6 +784,11 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast, currentUser })
   };
 
   const handleDelete = (id) => {
+    const isAuthorized = currentUser.role === "admin" || currentUser.email === "btp@iksana.tech" || currentUser.id === "e3";
+    if (!isAuthorized) {
+      showToast("Unauthorized: Only Admin or Biburaj can delete tasks", "error");
+      return;
+    }
     setTasks(tasks.filter(t => t.id !== id));
     showToast("Task deleted", "error");
   };
@@ -924,7 +929,9 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast, currentUser })
                     <div style={{ display: "flex", gap: 4 }}>
                       <button className="btn btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => setLogHours({ taskId: t.id, hours: "" })}>+ hrs</button>
                       <button className="btn btn-ghost" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => { setEditing(t); setShowForm(true); }}>Edit</button>
-                      <button className="btn btn-danger" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => handleDelete(t.id)}>✕</button>
+                      {(currentUser.role === "admin" || currentUser.email === "btp@iksana.tech" || currentUser.id === "e3") && (
+                        <button className="btn btn-danger" style={{ padding: "4px 8px", fontSize: 11 }} onClick={() => handleDelete(t.id)}>✕</button>
+                      )}
                     </div>
                   </td>
                 </tr>
