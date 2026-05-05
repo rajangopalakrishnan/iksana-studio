@@ -251,10 +251,13 @@ export default function IksanaApp() {
             { id: "reports", icon: "◳", label: "Reports" },
             { id: "notifications", icon: "◐", label: "Alerts", badge: computeAlerts(tasks, projects, engineers, leaves, dismissed).filter(a => a.severity === "critical").length },
             { id: "export", icon: "◧", label: "Export" },
+            { id: "imports", icon: "⭳", label: "Imports" },
           ] : currentUser.role === "task-manager" ? [
             { id: "dashboard", icon: "⬡", label: "Dashboard" },
             { id: "tasks", icon: "◈", label: "All Tasks", badge: tasks.filter(t => t.status === "in-progress").length },
             { id: "notifications", icon: "◐", label: "Alerts", badge: computeAlerts(tasks, projects, engineers, leaves, dismissed).filter(a => a.severity === "critical").length },
+            { id: "export", icon: "◧", label: "Export" },
+            { id: "imports", icon: "⭳", label: "Imports" },
           ] : [
             { id: "dashboard", icon: "⬡", label: "Dashboard" },
             { id: "tasks", icon: "◈", label: "My Tasks", badge: tasks.filter(t => t.assignee === currentUser.id && t.status === "in-progress").length },
@@ -278,7 +281,7 @@ export default function IksanaApp() {
       <div style={{ marginLeft: 220, minHeight: "100vh", width: "calc(100% - 220px)" }}>
         <div style={{ padding: "24px 28px", width: "100%", boxSizing: "border-box" }}>
           {(() => {
-            const allowedTabs = currentUser.role === "task-manager" ? ["dashboard", "tasks", "notifications"] : null;
+            const allowedTabs = currentUser.role === "task-manager" ? ["dashboard", "tasks", "notifications", "export", "imports"] : null;
             if (allowedTabs && !allowedTabs.includes(tab)) return null;
             return (
               <>
@@ -291,7 +294,8 @@ export default function IksanaApp() {
                 {tab === "productivity" && currentUser.role === "admin" && <Productivity productivity={productivity} tasks={tasks} engineers={engineers} projects={projects} setProductivity={v => persist(KEYS.productivity, setProductivity, v)} showToast={showToast} currentUser={currentUser} />}
                 {tab === "reports" && currentUser.role === "admin" && <Reports engineers={engineers} projects={projects} tasks={tasks} attendance={attendance} leaves={leaves} currentUser={currentUser} />}
                 {tab === "notifications" && <Notifications tasks={tasks} projects={projects} engineers={engineers} leaves={leaves} dismissed={dismissed} setDismissed={v => persist(KEYS.dismissed, setDismissed, v)} setTab={setTab} currentUser={currentUser} />}
-                {tab === "export" && currentUser.role === "admin" && <Export tasks={tasks} projects={projects} engineers={engineers} attendance={attendance} leaves={leaves} currentUser={currentUser} />}
+                {tab === "export" && <Export tasks={tasks} projects={projects} engineers={engineers} attendance={attendance} leaves={leaves} currentUser={currentUser} />}
+                {tab === "imports" && <Imports tasks={tasks} engineers={engineers} projects={projects} attendance={attendance} leaves={leaves} users={users} setTasks={v => persist(KEYS.tasks, setTasks, v)} setEngineers={v => persist(KEYS.engineers, setEngineers, v)} setProjects={v => persist(KEYS.projects, setProjects, v)} setAttendance={v => persist(KEYS.attendance, setAttendance, v)} setLeaves={v => persist(KEYS.leaves, setLeaves, v)} setUsers={v => persist(KEYS.users, setUsers, v)} currentUser={currentUser} showToast={showToast} />}
               </>
             );
           })()}
@@ -467,13 +471,13 @@ function Login({ onLogin, users }) {
           </button>
 
           <div style={{ marginTop: 28, padding: "16px", background: "#0c0e14", borderRadius: 10, border: "1px solid #1e2133" }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Demo Credentials</div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Access Notes</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div style={{ fontSize: 12, color: "#4a5568" }}>
-                <span style={{ color: "#6366f1", fontWeight: 600 }}>Admin:</span> admin@iksana.tech / admin
+                This app does not support self sign-up. Please use credentials provided by your administrator.
               </div>
               <div style={{ fontSize: 12, color: "#4a5568" }}>
-                <span style={{ color: "#64748b", fontWeight: 600 }}>Engineer:</span> any engineer email / user
+                Example user login: any engineer email from the system with password <strong style={{ color: "#e2e8f0" }}>user</strong>.
               </div>
             </div>
           </div>
@@ -1959,13 +1963,105 @@ function Notifications({ tasks, projects, engineers, leaves, dismissed, setDismi
   );
 }
 
+function Imports({ tasks, engineers, projects, attendance, leaves, users, setTasks, setEngineers, setProjects, setAttendance, setLeaves, setUsers, showToast }) {
+  const parseCsv = (csv) => {
+    const lines = csv.split(/\r?\n/).filter(line => line.trim());
+    const headers = lines[0].split(',').map(header => header.trim().toLowerCase().replace(/[^a-z0-9]/g, ''));
+    return lines.slice(1).map(line => {
+      const values = line.split(',').map(value => value.trim());
+      return headers.reduce((acc, header, index) => ({ ...acc, [header]: values[index] || '' }), {});
+    });
+  };
+
+  const handleTaskCsvImport = (event) => {
+    const input = event.target;
+    const file = input.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const rows = parseCsv(e.target.result);
+      const newTasks = rows.map(row => ({
+        id: 't' + uid(),
+        title: row.title || row.task || '',
+        projectId: row.projectid || row.project || '',
+        assignee: row.assignee || '',
+        discipline: row.discipline || 'BIM',
+        priority: row.priority || 'medium',
+        status: row.status || 'not-started',
+        estimatedHours: Number(row.estimatedhours || row.esthours || row.estimated || 0),
+        loggedHours: Number(row.loggedhours || row.logged || 0),
+        dueDate: row.duedate || '',
+        createdAt: new Date().toISOString().slice(0, 10),
+        onHoldComments: row.onholdcomments || '',
+      }));
+      setTasks([...tasks, ...newTasks]);
+      showToast(`${newTasks.length} tasks imported`);
+      input.value = '';
+    };
+    reader.readAsText(file);
+  };
+
+  const handleJsonImport = async (event) => {
+    const input = event.target;
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      let count = 0;
+      if (Array.isArray(data.tasks)) { setTasks([...tasks, ...data.tasks]); count += data.tasks.length; }
+      if (Array.isArray(data.projects)) { setProjects([...projects, ...data.projects]); count += data.projects.length; }
+      if (Array.isArray(data.engineers)) { setEngineers([...engineers, ...data.engineers]); count += data.engineers.length; }
+      if (Array.isArray(data.attendance)) { setAttendance([...attendance, ...data.attendance]); count += data.attendance.length; }
+      if (Array.isArray(data.leaves)) { setLeaves([...leaves, ...data.leaves]); count += data.leaves.length; }
+      if (Array.isArray(data.users)) { setUsers([...users, ...data.users]); count += data.users.length; }
+      showToast(count ? `Imported ${count} records from JSON` : 'No valid data found in JSON', count ? 'success' : 'error');
+      input.value = '';
+    } catch {
+      showToast('Invalid JSON import file', 'error');
+    }
+  };
+
+  return (
+    <div>
+      <PageHeader title="Imports" sub="Upload CSV or JSON data for tasks, engineers and projects" />
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
+        <div className="card" style={{ minHeight: 220 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Task CSV Import</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 14 }}>Upload a CSV file with columns: Title, Project, Assignee, Discipline, Priority, Status, EstimatedHours, LoggedHours, DueDate.</div>
+          <input type="file" accept=".csv" onChange={handleTaskCsvImport} />
+        </div>
+        <div className="card" style={{ minHeight: 220 }}>
+          <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 12 }}>Full JSON Import</div>
+          <div style={{ fontSize: 12, color: '#94a3b8', marginBottom: 14 }}>Import a JSON file containing tasks, projects, engineers, attendance, leaves, or users.</div>
+          <input type="file" accept=".json" onChange={handleJsonImport} />
+        </div>
+      </div>
+      <div className="card">
+        <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Import notes</div>
+        <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.7 }}>
+          <div>• Task CSV import appends rows into the current task register.</div>
+          <div>• Full JSON import can add projects, engineers, attendance, leaves and users.</div>
+          <div>• Clear duplicates before importing to avoid duplicate records.</div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Export ───────────────────────────────────────────────────────────────────
-function Export({ tasks, projects, engineers, attendance, leaves }) {
+function Export({ tasks: allTasks, projects: allProjects, engineers: allEngineers, attendance: allAttendance, leaves: allLeaves, currentUser }) {
   const [exporting, setExporting] = useState(null);
   const [done, setDone] = useState(null);
 
+  const tasks = currentUser.role === "admin" ? allTasks : allTasks.filter(t => t.assignee === currentUser.id);
+  const projects = currentUser.role === "admin" ? allProjects : allProjects.filter(p => tasks.some(t => t.projectId === p.id));
+  const engineers = currentUser.role === "admin" ? allEngineers : allEngineers.filter(e => e.id === currentUser.id);
+  const attendance = currentUser.role === "admin" ? allAttendance : allAttendance.filter(a => a.engineerId === currentUser.id);
+  const leaves = currentUser.role === "admin" ? allLeaves : allLeaves.filter(l => l.engineerId === currentUser.id);
+
   const stamp = () => new Date().toISOString().slice(0, 10);
-  const calcCost = (t) => { const e = engineers.find(x => x.id === t.assignee); return e ? t.loggedHours * (e.rate / 8) : 0; };
+  const calcCost = (t) => { const e = visibleEngineers.find(x => x.id === t.assignee); return e ? t.loggedHours * (e.rate / 8) : 0; };
   const flash = (label) => { setDone(label); setTimeout(() => setDone(null), 3000); };
 
   // ── SheetJS ──────────────────────────────────────────────────────────────
