@@ -1,0 +1,18 @@
+import connectToDatabase, { Attendance } from '../../lib/models.js';
+
+export default async function handler(req, res) {
+  await connectToDatabase();
+
+  if (req.method === 'GET') {
+    const data = await Attendance.find();
+    res.status(200).json(data);
+  } else if (req.method === 'POST') {
+    const data = req.body;
+    await Attendance.deleteMany();
+    await Attendance.insertMany(data);
+    res.status(200).json({ success: true });
+  } else {
+    res.setHeader('Allow', ['GET', 'POST']);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
+}

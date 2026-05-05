@@ -42,28 +42,49 @@ const LEAVE_TYPES = ["casual", "sick", "annual", "compensatory", "unpaid"];
 const LEAVE_COLORS = { casual: "#6366f1", sick: "#ef4444", annual: "#10b981", compensatory: "#f59e0b", unpaid: "#64748b" };
 
 async function load(key, fallback) {
+  if (key === KEYS.currentUser || key === KEYS.dismissed) {
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : fallback;
+    } catch { return fallback; }
+  }
   try {
-    const r = await window.storage.get(key);
-    return r ? JSON.parse(r.value) : fallback;
-  } catch { return fallback; }
+    const apiKey = key.replace('iksana:', '');
+    const res = await fetch(`/api/${apiKey}`);
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch {}
+  return fallback;
 }
 async function save(key, val) {
-  try { await window.storage.set(key, JSON.stringify(val)); } catch {}
+  if (key === KEYS.currentUser || key === KEYS.dismissed) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch {}
+    return;
+  }
+  try {
+    const apiKey = key.replace('iksana:', '');
+    await fetch(`http://localhost:5000/api/${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(val),
+    });
+  } catch {}
 }
 
 // ─── Seed Data ──────────────────────────────────────────────────────────────
 const SEED_ENGINEERS = [
-  { id: "e1", name: "Rajan Gopalakrishnan", role: "Director", location: "office", active: true, email: "rg@iksana.tech" },
-  { id: "e2", name: "Nisanth P", role: "Director", location: "office", active: true, email: "np@iksana.tech" },
-  { id: "e3", name: "Biburaj", role: "Co-Ordinator", location: "office", active: true, email: "btp@iksana.tech" },
-  { id: "e4", name: "Baburaj", role: "Sr. Tech Designer", location: "office", active: true, email: "baburaj.tc@iksana.tech" },
-  { id: "e5", name: "Akheel", role: "CAD Mid-Level", location: "office", active: true, email: "akheel.a@iksana.tech" },
-  { id: "e6", name: "Shaheeb", role: "CAD Mid-Level", location: "office", active: true, email: "sheheeb.uk@iksana.tech" },
-  { id: "e7", name: "Devi Krishna", role: "CAD Mid-Level", location: "office", active: true, email: "devikrishna.u@iksana.tech" },
-  { id: "e8", name: "Atheesh", role: "CAD Mid-Level", location: "office", active: true, email: "athish.tm@iksana.tech" },
-  { id: "e9", name: "Sreekumar", role: "CAD Mid-Level", location: "office", active: true, email: "sreekumar.mp@iksana.tech" },
-  { id: "e10", name: "Anjana. T A", role: "CAD Junior Level", location: "office", active: true, email: "anjana.ta@iksana.tech" },
-  { id: "e11", name: "Anjitha", role: "CAD Junior Level", location: "office", active: true, email: "anjana.ta@iksana.tech" },
+  { id: "e1", name: "Rajan Gopalakrishnan", role: "Director", location: "office", active: true, email: "rg@iksana.tech", rate: 3000 },
+  { id: "e2", name: "Nisanth P", role: "Director", location: "office", active: true, email: "np@iksana.tech", rate: 3000 },
+  { id: "e3", name: "Biburaj", role: "Co-Ordinator", location: "office", active: true, email: "btp@iksana.tech", rate: 2500 },
+  { id: "e4", name: "Baburaj", role: "Sr. Tech Designer", location: "office", active: true, email: "baburaj.tc@iksana.tech", rate: 2200 },
+  { id: "e5", name: "Akheel", role: "CAD Mid-Level", location: "office", active: true, email: "akheel.a@iksana.tech", rate: 1800 },
+  { id: "e6", name: "Shaheeb", role: "CAD Mid-Level", location: "office", active: true, email: "sheheeb.uk@iksana.tech", rate: 1800 },
+  { id: "e7", name: "Devi Krishna", role: "CAD Mid-Level", location: "office", active: true, email: "devikrishna.u@iksana.tech", rate: 1800 },
+  { id: "e8", name: "Atheesh", role: "CAD Mid-Level", location: "office", active: true, email: "athish.tm@iksana.tech", rate: 1800 },
+  { id: "e9", name: "Sreekumar", role: "CAD Mid-Level", location: "office", active: true, email: "sreekumar.mp@iksana.tech", rate: 1800 },
+  { id: "e10", name: "Anjana. T A", role: "CAD Junior Level", location: "office", active: true, email: "anjana.ta@iksana.tech", rate: 1500 },
+  { id: "e11", name: "Anjitha", role: "CAD Junior Level", location: "office", active: true, email: "anjana.ta@iksana.tech", rate: 1500 },
 ];
 
 const SEED_PROJECTS = [
@@ -204,7 +225,7 @@ export default function IksanaApp() {
   if (!currentUser) return (
     <div style={{ minHeight: "100vh", background: "#0c0e14", color: "#e2e8f0", display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
       {appStyles}
-      <Login onLogin={persistUser} users={users} setUsers={v => persist(KEYS.users, setUsers, v)} />
+      <Login onLogin={persistUser} users={users} />
     </div>
   );
 
@@ -229,7 +250,6 @@ export default function IksanaApp() {
             { id: "productivity", icon: "◎", label: "Productivity" },
             { id: "reports", icon: "◳", label: "Reports" },
             { id: "notifications", icon: "◐", label: "Alerts", badge: computeAlerts(tasks, projects, engineers, leaves, dismissed).filter(a => a.severity === "critical").length },
-            { id: "import", icon: "◤", label: "Import" },
             { id: "export", icon: "◧", label: "Export" },
           ] : currentUser.role === "task-manager" ? [
             { id: "dashboard", icon: "⬡", label: "Dashboard" },
@@ -271,7 +291,6 @@ export default function IksanaApp() {
                 {tab === "productivity" && currentUser.role === "admin" && <Productivity productivity={productivity} tasks={tasks} engineers={engineers} projects={projects} setProductivity={v => persist(KEYS.productivity, setProductivity, v)} showToast={showToast} currentUser={currentUser} />}
                 {tab === "reports" && currentUser.role === "admin" && <Reports engineers={engineers} projects={projects} tasks={tasks} attendance={attendance} leaves={leaves} currentUser={currentUser} />}
                 {tab === "notifications" && <Notifications tasks={tasks} projects={projects} engineers={engineers} leaves={leaves} dismissed={dismissed} setDismissed={v => persist(KEYS.dismissed, setDismissed, v)} setTab={setTab} currentUser={currentUser} />}
-                {tab === "import" && currentUser.role === "admin" && <Import tasks={tasks} setTasks={v => persist(KEYS.tasks, setTasks, v)} engineers={engineers} projects={projects} showToast={showToast} currentUser={currentUser} />}
                 {tab === "export" && currentUser.role === "admin" && <Export tasks={tasks} projects={projects} engineers={engineers} attendance={attendance} leaves={leaves} currentUser={currentUser} />}
               </>
             );
@@ -290,27 +309,15 @@ export default function IksanaApp() {
 }
 
 // ─── Login ────────────────────────────────────────────────────────────────────
-function Login({ onLogin, users, setUsers }) {
+function Login({ onLogin, users }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [focused, setFocused] = useState(null);
-  const [isSignup, setIsSignup] = useState(false);
 
   const handleLogin = () => {
     const user = users.find(u => u.email === email && u.password === password);
     if (user) { onLogin(user); } else { setError("Invalid credentials"); }
-  };
-
-  const handleSignup = async () => {
-    if (!name || !email || !password) { setError("All fields required"); return; }
-    if (users.find(u => u.email === email)) { setError("Email already exists"); return; }
-    const newUser = { id: `u-${Date.now()}`, name, email, role: "user", password };
-    const updated = [...users, newUser];
-    setUsers(updated);
-    await save("iksana:users", updated);
-    onLogin(newUser);
   };
 
   const features = [
@@ -384,33 +391,9 @@ function Login({ onLogin, users, setUsers }) {
         {/* RIGHT PANEL */}
         <div style={{ flex: 1, background: "#13151f", padding: "48px 44px", display: "flex", flexDirection: "column", justifyContent: "center" }}>
           <div style={{ marginBottom: 32 }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.02em", marginBottom: 6 }}>
-              {isSignup ? "Create Account" : "Welcome back"}
-            </div>
-            <div style={{ fontSize: 13, color: "#4a5568" }}>
-              {isSignup ? "Sign up to join the studio." : "Sign in to continue to your studio dashboard."}
-            </div>
+            <div style={{ fontSize: 22, fontWeight: 700, color: "#f1f5f9", letterSpacing: "-0.02em", marginBottom: 6 }}>Welcome back</div>
+            <div style={{ fontSize: 13, color: "#4a5568" }}>Sign in to continue to your studio dashboard.</div>
           </div>
-
-          {isSignup && (
-            <div style={{ marginBottom: 16 }}>
-              <label style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.08em", display: "block", marginBottom: 8 }}>Full Name</label>
-              <input
-                value={name}
-                onChange={e => { setName(e.target.value); setError(""); }}
-                onFocus={() => setFocused("name")}
-                onBlur={() => setFocused(null)}
-                placeholder="Your name"
-                style={{
-                  width: "100%", background: "#0c0e14", border: `1px solid ${focused === "name" ? "#6366f1" : "#1e2133"}`,
-                  color: "#e2e8f0", borderRadius: 10, padding: "12px 14px",
-                  fontSize: 13, fontFamily: "inherit", outline: "none",
-                  boxShadow: focused === "name" ? "0 0 0 3px rgba(99,102,241,0.12)" : "none",
-                  transition: "all 0.15s", boxSizing: "border-box"
-                }}
-              />
-            </div>
-          )}
 
           {/* Email field */}
           <div style={{ marginBottom: 16 }}>
@@ -445,7 +428,7 @@ function Login({ onLogin, users, setUsers }) {
                 onChange={e => { setPassword(e.target.value); setError(""); }}
                 onFocus={() => setFocused("pass")}
                 onBlur={() => setFocused(null)}
-                onKeyDown={e => e.key === "Enter" && (isSignup ? handleSignup() : handleLogin())}
+                onKeyDown={e => e.key === "Enter" && handleLogin()}
                 placeholder="••••••••"
                 style={{
                   width: "100%", background: "#0c0e14", border: `1px solid ${focused === "pass" ? "#6366f1" : "#1e2133"}`,
@@ -470,7 +453,7 @@ function Login({ onLogin, users, setUsers }) {
 
           {/* Submit */}
           <button
-            onClick={isSignup ? handleSignup : handleLogin}
+            onClick={handleLogin}
             style={{
               width: "100%", padding: "13px", background: "linear-gradient(135deg, #6366f1, #818cf8)",
               color: "white", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 600,
@@ -480,31 +463,20 @@ function Login({ onLogin, users, setUsers }) {
             onMouseEnter={e => e.target.style.boxShadow = "0 6px 28px rgba(99,102,241,0.5)"}
             onMouseLeave={e => e.target.style.boxShadow = "0 4px 20px rgba(99,102,241,0.35)"}
           >
-            {isSignup ? "Create Account →" : "Sign In →"}
+            Sign In →
           </button>
 
-          <div style={{ marginTop: 12, textAlign: "center" }}>
-            <button 
-              onClick={() => { setIsSignup(!isSignup); setError(""); }}
-              style={{ background: "none", border: "none", color: "#6366f1", cursor: "pointer", fontSize: 12, textDecoration: "underline" }}
-            >
-              {isSignup ? "Already have an account? Sign in" : "Don't have an account? Sign up"}
-            </button>
-          </div>
-
-          {!isSignup && (
-            <div style={{ marginTop: 28, padding: "16px", background: "#0c0e14", borderRadius: 10, border: "1px solid #1e2133" }}>
-              <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Demo Credentials</div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <div style={{ marginTop: 28, padding: "16px", background: "#0c0e14", borderRadius: 10, border: "1px solid #1e2133" }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#374151", textTransform: "uppercase", letterSpacing: "0.08em", marginBottom: 8 }}>Demo Credentials</div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
               <div style={{ fontSize: 12, color: "#4a5568" }}>
                 <span style={{ color: "#6366f1", fontWeight: 600 }}>Admin:</span> admin@iksana.tech / admin
               </div>
               <div style={{ fontSize: 12, color: "#4a5568" }}>
                 <span style={{ color: "#64748b", fontWeight: 600 }}>Engineer:</span> any engineer email / user
               </div>
-              </div>
             </div>
-          )}
+          </div>
         </div>
       </div>
     </div>
@@ -647,24 +619,15 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast, currentUser })
       if (editing.assignee !== data.assignee) {
         const eng = engineers.find(e => e.id === data.assignee);
         showToast(`Task assigned to ${eng?.name}`, "success");
-        // Email notification to assigned engineer
-        if (eng && eng.email) {
-          const emailMsg = `You have been assigned a new task: "${data.title}" (Due: ${data.dueDate})`;
-          console.log(`[EMAIL] To: ${eng.email}\nSubject: New Task Assignment\n${emailMsg}`);
-          setTimeout(() => showToast(`Email sent to ${eng.email}`, "success"), 300);
+        // Simulate email alert for user
+        if (currentUser.role === "admin" && eng) {
+          setTimeout(() => alert(`Email sent to ${eng.email}: New task "${data.title}" assigned.`), 1000);
         }
       }
       setTasks(tasks.map(t => t.id === editing.id ? { ...editing, ...data } : t));
       showToast("Task updated");
     } else {
-      const newTask = { id: "t" + uid(), ...data, loggedHours: 0, createdAt: new Date().toISOString().slice(0, 10) };
-      setTasks([...tasks, newTask]);
-      const eng = engineers.find(e => e.id === data.assignee);
-      if (eng && eng.email) {
-        const emailMsg = `You have been assigned a new task: "${data.title}" (Est. Hours: ${data.estimatedHours}, Due: ${data.dueDate})`;
-        console.log(`[EMAIL] To: ${eng.email}\nSubject: New Task Assignment\n${emailMsg}`);
-        setTimeout(() => showToast(`Email sent to ${eng.email}`, "success"), 300);
-      }
+      setTasks([...tasks, { id: "t" + uid(), ...data, loggedHours: 0, createdAt: new Date().toISOString().slice(0, 10) }]);
       showToast("Task created");
     }
     setShowForm(false); setEditing(null);
@@ -1992,127 +1955,6 @@ function Notifications({ tasks, projects, engineers, leaves, dismissed, setDismi
           </button>
         </div>
       )}
-    </div>
-  );
-}
-
-// ─── Import ───────────────────────────────────────────────────────────────────
-function Import({ tasks, setTasks, engineers, projects, showToast, currentUser }) {
-  const [preview, setPreview] = useState(null);
-  const [fileName, setFileName] = useState("");
-
-  const handleImport = (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    setFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-      const csv = evt.target.result;
-      const lines = csv.split('\n').filter(l => l.trim());
-      if (lines.length < 2) { showToast("Invalid CSV format", "error"); return; }
-      const headers = lines[0].split(',').map(h => h.trim());
-      const newTasks = lines.slice(1).map(line => {
-        const vals = line.split(',').map(v => v.trim());
-        return {
-          id: "t" + uid(),
-          title: vals[0] || "",
-          projectId: vals[1] || "",
-          assignee: vals[2] || "",
-          discipline: vals[3] || "BIM",
-          priority: vals[4] || "medium",
-          status: vals[5] || "not-started",
-          estimatedHours: Number(vals[6]) || 0,
-          dueDate: vals[7] || "",
-          loggedHours: 0,
-          createdAt: new Date().toISOString().slice(0, 10),
-          onHoldComments: "",
-        };
-      });
-      setPreview(newTasks);
-    };
-    reader.readAsText(file);
-  };
-
-  const confirmImport = async () => {
-    if (!preview || preview.length === 0) return;
-    const newTasks = [...tasks, ...preview];
-    setTasks(newTasks);
-    await save(KEYS.tasks, newTasks);
-    // Send email notifications for each task
-    preview.forEach(t => {
-      const eng = engineers.find(e => e.id === t.assignee);
-      if (eng && eng.email) {
-        const emailMsg = `You have been assigned a new task: "${t.title}" (Est. Hours: ${t.estimatedHours}, Due: ${t.dueDate})`;
-        console.log(`[EMAIL] To: ${eng.email}\nSubject: New Task Assignment\n${emailMsg}`);
-      }
-    });
-    showToast(`${preview.length} tasks imported successfully`);
-    setTimeout(() => showToast(`Email notifications sent to assigned engineers`, "success"), 500);
-    setPreview(null);
-    setFileName("");
-  };
-
-  return (
-    <div>
-      <PageHeader title="Import Tasks" sub="Upload CSV to add multiple tasks at once" />
-
-      <div className="card" style={{ maxWidth: 600 }}>
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 8 }}>Import CSV File</div>
-          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 16 }}>
-            CSV should have columns: Title, Project ID, Assignee ID, Discipline, Priority, Status, Estimated Hours, Due Date
-          </div>
-          <label style={{ display: "inline-block", padding: "12px 16px", background: "linear-gradient(135deg, #6366f1, #818cf8)", color: "white", borderRadius: 8, cursor: "pointer", fontSize: 13, fontWeight: 600 }}>
-            Choose File
-            <input type="file" accept=".csv" onChange={handleImport} style={{ display: "none" }} />
-          </label>
-          {fileName && <div style={{ marginTop: 8, fontSize: 12, color: "#10b981" }}>✓ {fileName}</div>}
-        </div>
-
-        {preview && preview.length > 0 && (
-          <div style={{ marginTop: 24, borderTop: "1px solid #1e2133", paddingTop: 24 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "#e2e8f0", marginBottom: 16 }}>Preview ({preview.length} tasks)</div>
-            <div style={{ maxHeight: 300, overflowY: "auto", marginBottom: 16 }}>
-              <table style={{ width: "100%", fontSize: 12, borderCollapse: "collapse" }}>
-                <thead>
-                  <tr style={{ borderBottom: "1px solid #1e2133" }}>
-                    <th style={{ padding: "8px", textAlign: "left", color: "#64748b" }}>Title</th>
-                    <th style={{ padding: "8px", textAlign: "left", color: "#64748b" }}>Project</th>
-                    <th style={{ padding: "8px", textAlign: "left", color: "#64748b" }}>Assignee</th>
-                    <th style={{ padding: "8px", textAlign: "left", color: "#64748b" }}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {preview.map((t, i) => {
-                    const proj = projects.find(p => p.id === t.projectId);
-                    const eng = engineers.find(e => e.id === t.assignee);
-                    return (
-                      <tr key={i} style={{ borderBottom: "1px solid #1a1d27" }}>
-                        <td style={{ padding: "8px", color: "#e2e8f0" }}>{t.title}</td>
-                        <td style={{ padding: "8px", color: "#94a3b8" }}>{proj?.name || t.projectId || "—"}</td>
-                        <td style={{ padding: "8px", color: "#94a3b8" }}>{eng?.name || t.assignee || "—"}</td>
-                        <td style={{ padding: "8px" }}><span className="tag" style={{ background: STATUS_COLOR[t.status] || "#6366f1", color: "white" }}>{t.status}</span></td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ display: "flex", gap: 12 }}>
-              <button className="btn btn-primary" onClick={confirmImport}>Confirm Import</button>
-              <button className="btn btn-ghost" onClick={() => { setPreview(null); setFileName(""); }}>Cancel</button>
-            </div>
-          </div>
-        )}
-
-        <div style={{ marginTop: 24, padding: "16px", background: "#0c0e14", borderRadius: 8, border: "1px solid #1e2133" }}>
-          <div style={{ fontSize: 11, fontWeight: 600, color: "#64748b", textTransform: "uppercase", marginBottom: 8 }}>CSV Format Example</div>
-          <pre style={{ fontSize: 11, color: "#94a3b8", overflowX: "auto", margin: 0 }}>Title,Project ID,Assignee ID,Discipline,Priority,Status,Est Hours,Due Date
-NEOM BIM Plan,p1,e3,BIM,high,in-progress,24,2025-06-01
-Dubai Modeling,p2,e4,Architecture,high,not-started,80,2025-07-01
-Interiors Layout,p3,e5,Interior,medium,in-progress,40,2025-06-15</pre>
-        </div>
-      </div>
     </div>
   );
 }
