@@ -155,6 +155,49 @@ const SEED_LEAVES = [
 const LEAVE_TYPES = ["casual", "sick", "annual", "compensatory", "unpaid"];
 const LEAVE_COLORS = { casual: "#6366f1", sick: "#ef4444", annual: "#10b981", compensatory: "#f59e0b", unpaid: "#64748b" };
 
+// ─── SheetJS & PDF Helpers (Shared) ──────────────────────────────────────────
+const loadXLSX = () => new Promise((res, rej) => {
+  if (window.XLSX) return res(window.XLSX);
+  const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+  s.onload = () => res(window.XLSX); s.onerror = rej;
+  document.head.appendChild(s);
+});
+
+const xlsxDownload = async (sheets, filename) => {
+  const XLSX = await loadXLSX();
+  const wb = XLSX.utils.book_new();
+  sheets.forEach(({ name, data, colWidths }) => {
+    const ws = XLSX.utils.aoa_to_sheet(data);
+    if (colWidths) ws["!cols"] = colWidths.map(w => ({ wch: w }));
+    XLSX.utils.book_append_sheet(wb, ws, name);
+  });
+  XLSX.writeFile(wb, filename);
+};
+
+const loadJsPDF = () => new Promise((res, rej) => {
+  if (window.jspdf) return res(window.jspdf.jsPDF);
+  const s = document.createElement("script");
+  s.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+  s.onload = () => {
+    const s2 = document.createElement("script");
+    s2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js";
+    s2.onload = () => res(window.jspdf.jsPDF); s2.onerror = rej;
+    document.head.appendChild(s2);
+  };
+  s.onerror = rej;
+  document.head.appendChild(s);
+});
+
+const pdfDownload = async (cfg) => {
+  const JsPDF = await loadJsPDF();
+  const doc = new JsPDF({ orientation: cfg.landscape ? "landscape" : "portrait" });
+  doc.setFontSize(20); doc.text(cfg.title, 14, 22);
+  doc.setFontSize(11); doc.setTextColor(100); doc.text(cfg.subtitle, 14, 30);
+  doc.autoTable({ head: [cfg.columns], body: cfg.rows, startY: 38, theme: "grid", headStyles: { fillColor: [99, 102, 241] }, styles: { fontSize: 9 } });
+  doc.save(cfg.filename);
+};
+
 async function load(key, fallback) {
   try {
     const { data, error } = await supabase
@@ -2181,7 +2224,7 @@ function Notifications({ tasks, projects, engineers, leaves, dismissed, setDismi
               >
                 {/* Severity dot */}
                 <div style={{ marginTop: 3, width: 10, height: 10, borderRadius: "50%", background: sty.dot, flexShrink: 0, boxShadow: `0 0 8px ${sty.dot}` }} />
-
+                
                 {/* Content */}
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
@@ -2830,17 +2873,25 @@ function Import({ engineers, projects, tasks, setTasks, showToast }) {
   const [loading, setLoading] = useState(false);
 
   const downloadTemplate = async () => {
-    const data = [
-      ["Title", "Project ID", "Discipline", "Priority", "Estimated Hours", "Due Date (YYYY-MM-DD)", "Assignee Email (Optional)"],
-      ["Sample Task 1", projects[0]?.id || "proj-1", "BIM", "medium", 12, "2025-12-31", engineers[0]?.email || ""],
-      ["Sample Task 2", projects[0]?.id || "proj-1", "Architecture", "high", 8, "2025-12-31", ""],
-    ];
-    await xlsxDownload([{ name: "Task Template", data, colWidths: [30, 15, 15, 10, 15, 20, 25] }], "iksana-task-template.xlsx");
+    try {
+      console.log("Generating template...");
+      const data = [
+        ["Title", "Project ID", "Discipline", "Priority", "Estimated Hours", "Due Date (YYYY-MM-DD)", "Assignee Email (Optional)"],
+        ["Sample Task 1", projects[0]?.id || "proj-1", "BIM", "medium", 12, "2025-12-31", engineers[0]?.email || ""],
+        ["Sample Task 2", projects[0]?.id || "proj-1", "Architecture", "high", 8, "2025-12-31", ""],
+      ];
+      await xlsxDownload([{ name: "Task Template", data, colWidths: [30, 15, 15, 10, 15, 20, 25] }], "iksana-task-template.xlsx");
+      showToast("Template downloaded");
+    } catch (e) {
+      console.error("Template Error:", e);
+      showToast("Download failed - see console", "error");
+    }
   };
 
   const handleFileChange = async (e) => {
     const f = e.target.files[0];
     if (!f) return;
+    console.log("Parsing file:", f.name);
     setLoading(true);
     try {
       const XLSX = await loadXLSX();
