@@ -600,8 +600,17 @@ function LoginScreen({ users, onLogin, onForgotPassword }) {
             <button className="btn btn-primary" style={{ marginTop:16 }} onClick={handleLogin} disabled={loading}>
               {loading ? "Signing in…" : "Sign In →"}
             </button>
-            <div style={{ textAlign:"center",marginTop:16 }}>
+            <div style={{ textAlign:"center",marginTop:16,display:"flex",flexDirection:"column",gap:8 }}>
               <button className="btn-ghost" onClick={()=>{setView("forgot");setForgotEmail(email);}}>Forgot password?</button>
+              <button className="btn-ghost" style={{ fontSize:10,opacity:0.4 }} onClick={async () => {
+                if (window.confirm("This will reset all users to default settings in your database. Continue?")) {
+                  localStorage.removeItem("iksana:users");
+                  await supabase.from('iksana_storage').delete().eq('key', 'iksana:users');
+                  window.location.reload();
+                }
+              }}>
+                Emergency: Reset Users to Default
+              </button>
             </div>
           </div>
         )}
