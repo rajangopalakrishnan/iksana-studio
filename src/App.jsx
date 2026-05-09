@@ -2999,27 +2999,36 @@ function Import({ engineers, projects, tasks, setTasks, showToast }) {
     <div>
       <PageHeader title="Import Tasks" sub="Bulk create tasks from Excel" />
       
-      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:20, marginBottom:24 }}>
-        <div className="card">
-          <div style={{ fontSize:15, fontWeight:600, marginBottom:10 }}>1. Get Template</div>
-          <p style={{ fontSize:13, color:"#64748b", marginBottom:16 }}>Download the standard Excel template to ensure your data is formatted correctly.</p>
-          <button className="btn btn-ghost" onClick={downloadTemplate}>⊞ Download Template</button>
-        </div>
+      <div className="card" style={{ marginBottom: 24, background:"#111827" }}>
+        <div style={{ fontSize:15, fontWeight:600, marginBottom:10 }}>Bulk Import Tasks</div>
+        <p style={{ fontSize:13, color:"#94a3b8", marginBottom:20 }}>
+          Upload an Excel (.xlsx) or CSV file with your task data. 
+          <br/><span style={{ fontSize:11, color:"#64748b" }}>Required columns: Title, Project ID, Discipline, Priority, Estimated Hours, Due Date (YYYY-MM-DD)</span>
+        </p>
         
-        <div className="card">
-          <div style={{ fontSize:15, fontWeight:600, marginBottom:10 }}>3. Attach Files (Optional)</div>
-          <p style={{ fontSize:13, color:"#64748b", marginBottom:16 }}>Attach DWG, PDF or Excel files to ALL imported tasks.</p>
-          <label className="btn btn-ghost" style={{ cursor:"pointer", border:"1px dashed #2d3148" }}>
-            {uploading ? "⌛ Uploading..." : "📁 Attach Files"}
-            <input type="file" multiple onChange={handleBulkAttach} style={{ display:"none" }} disabled={uploading} />
-          </label>
-          {importFiles.length > 0 && (
-            <div style={{ marginTop:10, display:"flex", flexWrap:"wrap", gap:5 }}>
-              {importFiles.map((f, i) => (
-                <div key={i} className="tag" style={{ fontSize:10 }}>{f.name}</div>
-              ))}
-            </div>
-          )}
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16 }}>
+          <div style={{ padding:16, background:"#0c0e14", borderRadius:12, border:"1px dashed #374151" }}>
+            <div style={{ fontSize:13, fontWeight:600, marginBottom:12 }}>1. Select Data File</div>
+            <label className="btn btn-primary" style={{ cursor:"pointer", width:"100%", justifyContent:"center" }}>
+              {file ? `✓ ${file.name}` : "📁 Choose Excel/CSV"}
+              <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} style={{ display:"none" }} />
+            </label>
+          </div>
+          
+          <div style={{ padding:16, background:"#0c0e14", borderRadius:12, border:"1px dashed #374151" }}>
+            <div style={{ fontSize:13, fontWeight:600, marginBottom:12 }}>2. Attach Support Files (Optional)</div>
+            <label className="btn btn-ghost" style={{ cursor:"pointer", width:"100%", justifyContent:"center" }}>
+              {uploading ? "⌛ Uploading..." : "📁 Attach DWG/PDF"}
+              <input type="file" multiple onChange={handleBulkAttach} style={{ display:"none" }} disabled={uploading} />
+            </label>
+            {importFiles.length > 0 && (
+              <div style={{ marginTop:10, display:"flex", flexWrap:"wrap", gap:5 }}>
+                {importFiles.map((f, i) => (
+                  <div key={i} className="tag" style={{ fontSize:10 }}>{f.name}</div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
