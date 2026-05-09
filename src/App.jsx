@@ -248,7 +248,7 @@ const SEED_ENGINEERS = [
   { id: "e7", name: "Atheesh",             email: "athish.tm@iksana.tech", role: "CAD Mid Level",     location: "office", rate: 650, active: true },
   { id: "e8", name: "Sreekumar",           email: "sreekumar.mp@iksana.tech", role: "CAD Mid Level",     location: "remote", rate: 650, active: true },
   { id: "e9", name: "Anjana. T A",         email: "anjana.ta@iksana.tech", role: "CAD-Junior Level",   location: "office", rate: 450, active: true },
-  { id: "e10", name: "Anjitha",            email: "anjana.ta@iksana.tech", role: "CAD-Junior Level",   location: "office", rate: 450, active: true },
+  { id: "e10", name: "Anjitha",            email: "anjitha@iksana.tech",   role: "CAD-Junior Level",   location: "office", rate: 450, active: true },
 ];
 
 const SEED_PROJECTS = [
