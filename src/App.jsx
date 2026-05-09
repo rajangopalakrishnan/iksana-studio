@@ -68,6 +68,7 @@ const can = (role, action) => {
     viewProductivity: ["admin","manager"],
     viewExport:       ["admin","manager"],
     viewAlerts:       ["admin","manager"],
+    viewAuditLog:     ["admin","manager"],
     viewSettings:     ["admin"],
     editEngineers:    ["admin"],
     editProjects:     ["admin","manager"],
@@ -367,9 +368,10 @@ export default function App() {
 
   const handleLogout = async () => {
     await addAudit(currentUser, "LOGOUT", "Signed out");
+    localStorage.clear();
     await save(KEYS.session, null);
     setCurrentUser(null);
-    setTab("dashboard");
+    window.location.reload();
   };
 
   const handlePasswordChange = async (newPassword) => {
@@ -1266,7 +1268,7 @@ function Projects({ projects, tasks, engineers, setProjects, showToast }) {
       <PageHeader title="Projects" sub={`${projects.length} projects`} action={<button className="btn btn-primary" onClick={() => { setEditing(null); setShowForm(true); }}>+ New Project</button>} />
       <div className="card" style={{ padding: 0 }}>
         <table>
-          <thead><tr><th>Project</th><th>Client</th><th>Region</th><th>Budget</th><th>Cost to Date</th><th>Tasks</th><th>Status</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Project</th><th>Client</th><th>Region</th>{can(role,"viewFinancials") && <th>Budget</th>}{can(role,"viewFinancials") && <th>Cost to Date</th>}<th>Tasks</th><th>Status</th>{can(role,"manageUsers") && <th>Actions</th>}</tr></thead>
           <tbody>
             {projects.map(p => {
               const ptasks = tasks.filter(t => t.projectId === p.id);
@@ -1280,18 +1282,24 @@ function Projects({ projects, tasks, engineers, setProjects, showToast }) {
                   <td><div style={{ fontWeight: 500 }}>{p.name}</div><div style={{ fontSize: 11, color: "#4a5568" }}>{p.startDate} → {p.endDate}</div></td>
                   <td style={{ color: "#94a3b8" }}>{p.client}</td>
                   <td><span className="tag" style={{ background: p.region === "UAE" ? "#0ea5e922" : "#8b5cf622", color: p.region === "UAE" ? "#0ea5e9" : "#8b5cf6" }}>{p.region}</span></td>
-                  <td style={{ fontFamily: "DM Mono, monospace", fontSize: 12 }}>{fmt(p.budget)}</td>
-                  <td>
-                    <div style={{ fontFamily: "DM Mono, monospace", fontSize: 12 }}>{fmt(cost)}</div>
-                    <div style={{ fontSize: 10, color: pct(cost, p.budget) > 80 ? "#ef4444" : "#64748b" }}>{pct(cost, p.budget)}% used</div>
-                  </td>
+                  {can(role,"viewFinancials") && <td style={{ fontFamily: "DM Mono, monospace", fontSize: 12 }}>{fmt(p.budget)}</td>}
+                  {can(role,"viewFinancials") && (
+                    <td>
+                      <div style={{ fontFamily: "DM Mono, monospace", fontSize: 12 }}>{fmt(cost)}</div>
+                      <div style={{ fontSize: 10, color: pct(cost, p.budget) > 80 ? "#ef4444" : "#64748b" }}>{pct(cost, p.budget)}% used</div>
+                    </td>
+                  )}
                   <td><div>{done}/{ptasks.length} done</div><div className="progress-bar" style={{ marginTop: 4 }}><div className="progress-fill" style={{ width: `${pct(done, ptasks.length)}%`, background: "#6366f1" }} /></div></td>
                   <td>
-                    <select value={p.status} onChange={e => setProjects(projects.map(x => x.id === p.id ? { ...x, status: e.target.value } : x))} style={{ width: "auto", fontSize: 12, color: p.status === "active" ? "#10b981" : p.status === "completed" ? "#64748b" : "#f59e0b" }}>
-                      {["active", "on-hold", "completed"].map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+                    {can(role,"editProjects") ? (
+                      <select value={p.status} onChange={e => setProjects(projects.map(x => x.id === p.id ? { ...x, status: e.target.value } : x))} style={{ width: "auto", fontSize: 12, color: p.status === "active" ? "#10b981" : p.status === "completed" ? "#64748b" : "#f59e0b" }}>
+                        {["active", "on-hold", "completed"].map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                    ) : (
+                      <span className="tag" style={{ background: p.status === "active" ? "#10b98122" : "#64748b22", color: p.status === "active" ? "#10b981" : "#64748b" }}>{p.status}</span>
+                    )}
                   </td>
-                  <td><button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 11 }} onClick={() => { setEditing(p); setShowForm(true); }}>Edit</button></td>
+                  {can(role,"manageUsers") && <td><button className="btn btn-ghost" style={{ padding: "4px 10px", fontSize: 11 }} onClick={() => { setEditing(p); setShowForm(true); }}>Edit</button></td>}
                 </tr>
               );
             })}
@@ -1776,15 +1784,16 @@ function Attendance({ engineers, attendance, leaves, setAttendance, setLeaves, s
   };
 
   const toggleLeaveStatus = async (id) => {
+    if (!can(role, "approveLeave")) return;
     const leave = leaves.find(l => l.id === id);
-    const newStatus = leave?.status === "approved" ? "rejected" : "approved";
+    if (!leave) return;
+    const newStatus = leave.status === "approved" ? "rejected" : "approved";
     setLeaves(leaves.map(l => l.id === id ? { ...l, status: newStatus } : l));
-    // Send email notification to engineer
-    if (emailCfg?.enabled && emailCfg?.triggers?.leaveDecision && leave) {
+    if (emailCfg?.enabled && emailCfg?.triggers?.leaveDecision) {
       const eng = engineers.find(e => e.id === leave.engineerId);
       if (eng) {
         await onSendEmail({
-          to_email: users ? eng.email : emailCfg.adminEmail,
+          to_email: eng.email,
           to_name: eng.name,
           subject: `Iksana Studio — Leave Request ${newStatus === "approved" ? "Approved" : "Rejected"}`,
           message: `Dear ${eng.name},\n\nYour ${leave.type} leave request from ${leave.startDate} to ${leave.endDate} has been ${newStatus}.\n\nReason submitted: ${leave.reason}\n\nPlease contact your manager if you have any questions.\n\nIksana Studio Management`,
@@ -1803,7 +1812,7 @@ function Attendance({ engineers, attendance, leaves, setAttendance, setLeaves, s
 
       {/* Sub-tabs */}
       <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-        {[["today", "Daily Attendance"], ["monthly", "Monthly Summary"], ["leaves", "Leave Management"]].map(([id, label]) => (
+        {[["today", "Daily Attendance"], ["monthly", "Monthly Summary"], ["leaves", "Leave Management"]].filter(([id]) => role !== "operator" || id === "leaves").map(([id, label]) => (
           <button key={id} className={`btn ${view === id ? "btn-primary" : "btn-ghost"}`} onClick={() => setView(id)}>{label}</button>
         ))}
       </div>
@@ -2895,6 +2904,8 @@ function Import({ engineers, projects, tasks, setTasks, showToast }) {
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [importFiles, setImportFiles] = useState([]);
+  const [uploading, setUploading] = useState(false);
 
   const downloadTemplate = async () => {
     try {
@@ -2941,7 +2952,7 @@ function Import({ engineers, projects, tasks, setTasks, showToast }) {
             dueDate: r[5],
             assignee: eng ? eng.id : "",
             status: "not-started",
-            attachments: [],
+            attachments: (importFiles || []).map(f => ({ name: f.name, type: f.name.split(".").pop().toLowerCase(), path: f.path })),
             createdAt: new Date().toISOString().slice(0, 10)
           };
         });
@@ -2956,11 +2967,28 @@ function Import({ engineers, projects, tasks, setTasks, showToast }) {
     setLoading(false);
   };
 
-  const commitImport = () => {
-    setTasks([...tasks, ...preview]);
+  const handleBulkAttach = async (e) => {
+    const files = Array.from(e.target.files);
+    if (files.length === 0) return;
+    setUploading(true);
+    const results = [];
+    for (const f of files) {
+      const path = await uploadFile(f);
+      if (path) results.push({ name: f.name, path });
+    }
+    setImportFiles(prev => [...prev, ...results]);
+    setUploading(false);
+    showToast(`${results.length} files prepared for import batch`);
+  };
+
+  const commitImport = async () => {
+    const updated = [...tasks, ...preview];
+    await save(KEYS.tasks, updated);
+    setTasks(updated);
     showToast(`${preview.length} tasks imported successfully`);
     setPreview([]);
     setFile(null);
+    setImportFiles([]);
   };
 
   return (
@@ -2975,12 +3003,19 @@ function Import({ engineers, projects, tasks, setTasks, showToast }) {
         </div>
         
         <div className="card">
-          <div style={{ fontSize:15, fontWeight:600, marginBottom:10 }}>2. Upload File</div>
-          <p style={{ fontSize:13, color:"#64748b", marginBottom:16 }}>Upload your filled Excel template or a CSV file with the same columns.</p>
-          <label className="btn btn-primary" style={{ cursor:"pointer" }}>
-            {file ? `✓ ${file.name}` : "📁 Choose File"}
-            <input type="file" accept=".xlsx,.xls,.csv" onChange={handleFileChange} style={{ display:"none" }} />
+          <div style={{ fontSize:15, fontWeight:600, marginBottom:10 }}>3. Attach Files (Optional)</div>
+          <p style={{ fontSize:13, color:"#64748b", marginBottom:16 }}>Attach DWG, PDF or Excel files to ALL imported tasks.</p>
+          <label className="btn btn-ghost" style={{ cursor:"pointer", border:"1px dashed #2d3148" }}>
+            {uploading ? "⌛ Uploading..." : "📁 Attach Files"}
+            <input type="file" multiple onChange={handleBulkAttach} style={{ display:"none" }} disabled={uploading} />
           </label>
+          {importFiles.length > 0 && (
+            <div style={{ marginTop:10, display:"flex", flexWrap:"wrap", gap:5 }}>
+              {importFiles.map((f, i) => (
+                <div key={i} className="tag" style={{ fontSize:10 }}>{f.name}</div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
