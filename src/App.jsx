@@ -1248,7 +1248,7 @@ function EngineerForm({ engineer, onSave, onClose }) {
 }
 
 // ─── Projects ────────────────────────────────────────────────────────────────
-function Projects({ projects, tasks, engineers, setProjects, showToast }) {
+function Projects({ projects, tasks, engineers, setProjects, showToast, role }) {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
 
@@ -1270,8 +1270,10 @@ function Projects({ projects, tasks, engineers, setProjects, showToast }) {
         <table>
           <thead><tr><th>Project</th><th>Client</th><th>Region</th>{can(role,"viewFinancials") && <th>Budget</th>}{can(role,"viewFinancials") && <th>Cost to Date</th>}<th>Tasks</th><th>Status</th>{can(role,"manageUsers") && <th>Actions</th>}</tr></thead>
           <tbody>
-            {projects.map(p => {
-              const ptasks = tasks.filter(t => t.projectId === p.id);
+            {(!projects || projects.length === 0) ? (
+              <tr><td colSpan="8" style={{ textAlign:"center", padding:40, color:"#64748b" }}>No projects found or loading failed.</td></tr>
+            ) : projects.map(p => {
+              const ptasks = (tasks || []).filter(t => t.projectId === p.id);
               const done = ptasks.filter(t => t.status === "completed").length;
               const cost = ptasks.reduce((s, t) => {
                 const eng = engineers.find(e => e.id === t.assignee);
