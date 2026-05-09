@@ -34,15 +34,12 @@ async function hashPassword(password) {
 // ─── Default Users (passwords will be hashed on first load) ──────────────────
 // Plaintext passwords shown here — on first save they are hashed and originals dropped
 const SEED_USERS_PLAIN = [
-  { id:"u1", name:"Arun Kumar",   email:"arun@iksana.in",      role:"admin",    engineerId:"e1", password:"Admin@2025",  mustChange:false },
-  { id:"u0", name:"Admin Studio", email:"admin@iksana.tech",   role:"admin",    engineerId:"e1", password:"admin",       mustChange:true },
-  { id:"u2", name:"Priya Nair",   email:"priya@iksana.in",     role:"manager",  engineerId:"e2", password:"Iksana@2025", mustChange:true  },
-  { id:"u3", name:"Rahul Sharma", email:"rahul@iksana.in",     role:"operator", engineerId:"e3", password:"Iksana@2025", mustChange:true  },
-  { id:"u4", name:"Divya Menon",  email:"divya@iksana.in",     role:"operator", engineerId:"e4", password:"Iksana@2025", mustChange:true  },
-  { id:"u5", name:"Kiran Reddy",  email:"kiran@iksana.in",     role:"operator", engineerId:"e5", password:"Iksana@2025", mustChange:true  },
-  { id:"u6", name:"Ananya Singh", email:"ananya@iksana.in",    role:"manager",  engineerId:"e6", password:"Iksana@2025", mustChange:true  },
-  { id:"u7", name:"Vijay Thomas", email:"vijay@iksana.in",     role:"operator", engineerId:"e7", password:"Iksana@2025", mustChange:true  },
-  { id:"u8", name:"Meera Pillai", email:"meera@iksana.in",     role:"operator", engineerId:"e8", password:"Iksana@2025", mustChange:true  },
+  { id:"u1", name:"Rajan Gopalakrishnan", email:"rg@iksana.tech",      role:"admin",    engineerId:"e1", password:"Admin@2025",  mustChange:false },
+  { id:"u0", name:"Admin Studio",        email:"admin@iksana.tech",   role:"admin",    engineerId:"e1", password:"admin",       mustChange:true },
+  { id:"u2", name:"Nisanth P",           email:"np@iksana.tech",      role:"admin",    engineerId:"e2", password:"Iksana@2025", mustChange:true  },
+  { id:"u3", name:"Baburaj",             email:"baburaj.tc@iksana.tech", role:"manager", engineerId:"e3", password:"Iksana@2025", mustChange:true  },
+  { id:"u4", name:"Akheel",              email:"akheel.a@iksana.tech", role:"operator", engineerId:"e4", password:"Iksana@2025", mustChange:true  },
+  { id:"u5", name:"Shaheeb",             email:"sheheeb.uk@iksana.tech", role:"operator", engineerId:"e5", password:"Iksana@2025", mustChange:true  },
 ];
 
 async function initUsers(stored) {
@@ -232,14 +229,16 @@ async function save(key, val) {
 
 // ─── Seed Data ──────────────────────────────────────────────────────────────
 const SEED_ENGINEERS = [
-  { id: "e1", name: "Arun Kumar",   email: "arun@iksana.in",     role: "BIM Manager",       location: "office", rate: 850, active: true },
-  { id: "e2", name: "Priya Nair",   email: "priya@iksana.in",  role: "Senior Architect",  location: "office", rate: 750, active: true },
-  { id: "e3", name: "Rahul Sharma", email: "rahul@iksana.in",  role: "BIM Coordinator",   location: "remote", rate: 650, active: true },
-  { id: "e4", name: "Divya Menon",  email: "divya@iksana.in",  role: "Interior Designer", location: "remote", rate: 600, active: true },
-  { id: "e5", name: "Kiran Reddy",  email: "kiran@iksana.in",  role: "Revit Modeller",    location: "office", rate: 500, active: true },
-  { id: "e6", name: "Ananya Singh", email: "ananya@iksana.in", role: "QS Estimator",      location: "remote", rate: 580, active: true },
-  { id: "e7", name: "Vijay Thomas", email: "vijay@iksana.in",  role: "Revit Modeller",    location: "office", rate: 500, active: true },
-  { id: "e8", name: "Meera Pillai", email: "meera@iksana.in",  role: "Drafting Engineer", location: "remote", rate: 450, active: true },
+  { id: "e1", name: "Rajan Gopalakrishnan", email: "rg@iksana.tech",      role: "Director",          location: "office", rate: 1000, active: true },
+  { id: "e2", name: "Nisanth P",           email: "np@iksana.tech",      role: "Director",          location: "office", rate: 1000, active: true },
+  { id: "e3", name: "Baburaj",             email: "baburaj.tc@iksana.tech", role: "Sr.Tech-Designer",   location: "office", rate: 850, active: true },
+  { id: "e4", name: "Akheel",              email: "akheel.a@iksana.tech", role: "CAD Mid Level",     location: "office", rate: 650, active: true },
+  { id: "e5", name: "Shaheeb",             email: "sheheeb.uk@iksana.tech", role: "CAD Mid Level",     location: "remote", rate: 650, active: true },
+  { id: "e6", name: "Devi Krishna",        email: "devikrishna.u@iksana.tech", role: "CAD Mid Level",   location: "office", rate: 650, active: true },
+  { id: "e7", name: "Atheesh",             email: "athish.tm@iksana.tech", role: "CAD Mid Level",     location: "office", rate: 650, active: true },
+  { id: "e8", name: "Sreekumar",           email: "sreekumar.mp@iksana.tech", role: "CAD Mid Level",     location: "remote", rate: 650, active: true },
+  { id: "e9", name: "Anjana. T A",         email: "anjana.ta@iksana.tech", role: "CAD-Junior Level",   location: "office", rate: 450, active: true },
+  { id: "e10", name: "Anjitha",            email: "anjana.ta@iksana.tech", role: "CAD-Junior Level",   location: "office", rate: 450, active: true },
 ];
 
 const SEED_PROJECTS = [
