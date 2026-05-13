@@ -423,12 +423,12 @@ export default function App() {
     if (user.mustChange) setShowChangePwd(true);
   };
 
-  const handleLogout = async () => {
-    await addAudit(currentUser, "LOGOUT", "Signed out");
-    localStorage.clear();
-    await save(KEYS.session, null);
+  const handleLogout = () => {
+    localStorage.removeItem(KEYS.session);
+    save(KEYS.session, null);
     setCurrentUser(null);
-    window.location.reload();
+    setTab("dashboard");
+    showToast("Signed out", "success");
   };
 
   const handlePasswordChange = async (newPassword) => {
