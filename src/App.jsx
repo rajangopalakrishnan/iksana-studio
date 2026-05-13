@@ -133,6 +133,9 @@ function makeAuditEntry(user, action, detail) {
   return { id: uid(), ts: new Date().toISOString(), user: user?.name || "System", role: user?.role || "", action, detail };
 }
 
+// ─── Date Formatter (display only — data stays YYYY-MM-DD) ──────────────────
+const fmtDate = (d) => { if (!d) return ""; const [y,m,dd] = d.split("-"); return `${dd}/${m}/${y}`; };
+
 // ─── Seed Attendance ─────────────────────────────────────────────────────────
 const TODAY = new Date().toISOString().slice(0, 10);
 const daysBack = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return d.toISOString().slice(0, 10); };
@@ -948,7 +951,7 @@ function Dashboard({ engineers, projects, tasks, setTab, role, currentUser }) {
                       <span style={{ fontSize:11, color:"#64748b", width:30 }}>{progress}%</span>
                     </div>
                   </td>
-                  <td style={{ fontSize:12, color:new Date(t.dueDate)<new Date()?"#ef4444":"#64748b" }}>{t.dueDate}</td>
+                  <td style={{ fontSize:12, color:new Date(t.dueDate)<new Date()?"#ef4444":"#64748b" }}>{fmtDate(t.dueDate)}</td>
                 </tr>
               );
             })}
@@ -1109,7 +1112,7 @@ function Tasks({ tasks, engineers, projects, setTasks, showToast, role, currentU
                       <span className="tag" style={{ background:`${STATUS_COLOR[t.status]}22`, color:STATUS_COLOR[t.status] }}>{t.status}</span>
                     )}
                   </td>
-                  <td style={{ fontSize:12, color:new Date(t.dueDate)<new Date()&&t.status!=="completed"?"#ef4444":"#64748b" }}>{t.dueDate}</td>
+                  <td style={{ fontSize:12, color:new Date(t.dueDate)<new Date()&&t.status!=="completed"?"#ef4444":"#64748b" }}>{fmtDate(t.dueDate)}</td>
                   <td>
                     <div style={{ display:"flex", gap:4 }}>
                       <button className="btn btn-ghost" style={{ padding:"4px 8px", fontSize:11 }} onClick={() => setLogHours({ taskId:t.id, hours:"" })}>+ hrs</button>
@@ -3144,7 +3147,7 @@ function Import({ engineers, projects, tasks, setTasks, showToast }) {
                   <td>{t.discipline}</td>
                   <td>{engineers.find(e => e.id === t.assignee)?.name || "—"}</td>
                   <td>{t.estimatedHours}h</td>
-                  <td>{t.dueDate}</td>
+                  <td>{fmtDate(t.dueDate)}</td>
                 </tr>
               ))}
             </tbody>
