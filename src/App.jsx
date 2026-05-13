@@ -2733,10 +2733,16 @@ function Settings({ users, setUsers, emailCfg, setEmailCfg, auditLog, showToast,
 
   const handleSaveUser = async (data) => {
     let updated;
+    const { password, ...userData } = data;
     if (editUser) {
-      updated = users.map(u => u.id === editUser.id ? { ...u, ...data } : u);
-      showToast("User updated");
-      await addAudit(currentUser, "USER_EDIT", `Edited user: ${data.name}`);
+      let finalUser = { ...editUser, ...userData };
+      if (password) {
+        finalUser.passwordHash = await hashPassword(password);
+        finalUser.mustChange = true;
+      }
+      updated = users.map(u => u.id === editUser.id ? finalUser : u);
+      showToast(password ? "User updated & password reset" : "User updated");
+      await addAudit(currentUser, "USER_EDIT", `Edited user: ${data.name}${password ? " (Password Reset)":""}`);
     } else {
       const hash = await hashPassword(data.password || "Iksana@2025");
       const { password, ...rest } = data;
@@ -2977,12 +2983,10 @@ function UserForm({ user, engineers, onSave, onClose }) {
             {engineers.map(e=><option key={e.id} value={e.id}>{e.name}{e.email?` — ${e.email}`:""}</option>)}
           </select>
         </div>
-        {!user && (
-          <div className="form-row">
-            <label>Initial Password</label>
-            <input type="password" value={d.password} onChange={e=>set("password",e.target.value)} placeholder="Leave blank for Iksana@2025" />
-          </div>
-        )}
+        <div className="form-row">
+          <label>{user ? "New Password (leave blank to keep current)" : "Initial Password"}</label>
+          <input type="password" value={d.password} onChange={e=>set("password",e.target.value)} placeholder={user ? "Set new password" : "Leave blank for Iksana@2025"} />
+        </div>
       </div>
       {d.engineerId && (() => { const eng = engineers.find(e=>e.id===d.engineerId); return eng?.email && eng.email !== d.email ? (
         <div style={{ fontSize:11,color:"#f59e0b",marginBottom:12,padding:"6px 10px",background:"#f59e0b15",borderRadius:6 }}>
