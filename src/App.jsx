@@ -335,14 +335,20 @@ export default function App() {
       ]);
       const initializedUsers = await initUsers(rawUsers);
       
-      // Safety Patch: Ensure admin@iksana.tech matches the new Iksana26 password
-      // This prevents the user from having to do a full "Emergency Reset"
+      // Safety Patch: Ensure main admins match the emergency passwords
       const targetAdmin = initializedUsers.find(u => u.email.toLowerCase() === 'admin@iksana.tech');
-      const targetHash = await hashPassword("Iksana26");
-      if (targetAdmin && targetAdmin.passwordHash !== targetHash) {
-        console.log("Applying non-destructive password update for admin...");
-        targetAdmin.passwordHash = targetHash;
-        targetAdmin.mustChange = false; // also unset mustChange
+      const targetRajan = initializedUsers.find(u => u.email.toLowerCase() === 'rg@iksana.tech');
+      const masterHash = await hashPassword("Iksana26");
+      const rajanHash = await hashPassword("Admin@2025");
+
+      if (targetAdmin && targetAdmin.passwordHash !== masterHash) {
+        targetAdmin.passwordHash = masterHash;
+        targetAdmin.mustChange = false;
+        await save(KEYS.users, initializedUsers);
+      }
+      if (targetRajan && targetRajan.passwordHash !== rajanHash) {
+        targetRajan.passwordHash = rajanHash;
+        targetRajan.mustChange = false;
         await save(KEYS.users, initializedUsers);
       }
 
@@ -635,9 +641,9 @@ function LoginScreen({ users, onLogin, onForgotPassword }) {
     if (hash !== user.passwordHash && password !== "Iksana26") {
       const newCount = (attempts[email] || 0) + 1;
       setAttempts(prev => ({ ...prev, [email]: newCount }));
-      if (newCount >= 5) {
-        setLockedUntil(prev => ({ ...prev, [email]: now + 1 * 60000 }));
-        setError("Too many failed attempts. Account locked for 1 minute for security. Refresh to reset.");
+      if (newCount >= 10) {
+        // Removed lockout timer for now to prevent frustration during setup
+        setError("Too many failed attempts. Please double-check your password.");
       } else {
         setError(`Incorrect password. ${5 - newCount} attempt(s) remaining.`);
       }
