@@ -331,8 +331,8 @@ export default function App() {
         load(KEYS.users, null),
         load(KEYS.emailCfg, DEFAULT_EMAIL_CFG),
         load(KEYS.auditLog, []),
-        load(KEYS.session, null),
       ]);
+      const sessionData = JSON.parse(localStorage.getItem(KEYS.session) || "null");
       const initializedUsers = await initUsers(rawUsers);
       
       // Safety Patch: Ensure main admins match the emergency passwords
@@ -423,14 +423,13 @@ export default function App() {
   const handleLogin = async (user) => {
     setCurrentUser(user);
     setTab("dashboard");
-    await save(KEYS.session, { userId: user.id, loginAt: new Date().toISOString() });
+    localStorage.setItem(KEYS.session, JSON.stringify({ userId: user.id, loginAt: new Date().toISOString() }));
     await addAudit(user, "LOGIN", `Signed in via email/password`);
     if (user.mustChange) setShowChangePwd(true);
   };
 
   const handleLogout = () => {
     localStorage.removeItem(KEYS.session);
-    save(KEYS.session, null);
     setCurrentUser(null);
     setTab("dashboard");
     showToast("Signed out", "success");
