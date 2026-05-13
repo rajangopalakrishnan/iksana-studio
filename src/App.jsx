@@ -560,16 +560,7 @@ export default function App() {
               <div style={{ fontSize:10,...ROLES[role] }}>{ROLES[role].label}</div>
             </div>
           </div>
-          <button className="btn btn-ghost" style={{ width:"100%",fontSize:11,padding:"4px 8px",justifyContent:"center",marginBottom:4,color:"#6366f1" }} onClick={reloadData}>🔄 Sync with Database</button>
-          <button className="btn btn-ghost" style={{ width:"100%",fontSize:11,padding:"4px 8px",justifyContent:"center",marginBottom:4,color:"#10b981" }} onClick={() => {
-            const data = { projects, tasks, engineers, attendance, leaves };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `iksana_backup_${new Date().toISOString().slice(0,10)}.json`;
-            a.click();
-          }}>💾 Backup to Local File</button>
+
           <button className="btn btn-ghost" style={{ width:"100%",fontSize:11,padding:"4px 8px",justifyContent:"center",marginBottom:4 }} onClick={() => setShowChangePwd(true)}>Change Password</button>
           <button className="btn btn-ghost" style={{ width:"100%",fontSize:11,padding:"4px 8px",justifyContent:"center" }} onClick={handleLogout}>Sign Out</button>
           <div style={{ fontSize:10,color:"#374151",marginTop:6,textAlign:"center" }}>v3.0 · ISO 19650</div>
