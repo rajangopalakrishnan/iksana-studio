@@ -378,6 +378,22 @@ export default function App() {
       await save(KEYS.users, initializedUsers);
       setLoading(false);
     })();
+
+    // AUTO-SYNC: Sync with database every 30 seconds automatically
+    const interval = setInterval(() => {
+      (async () => {
+        const [eng, proj, tsk, prod, att, lvs, dis, usr] = await Promise.all([
+          load(KEYS.engineers, []), load(KEYS.projects, []), load(KEYS.tasks, []),
+          load(KEYS.productivity, SEED_PRODUCTIVITY), load(KEYS.attendance, []),
+          load(KEYS.leaves, []), load(KEYS.dismissed, []), load(KEYS.users, null)
+        ]);
+        setEngineers(eng); setProjects(proj); setTasks(tsk); setProductivity(prod);
+        setAttendance(att); setLeaves(lvs); setDismissed(dis);
+        if (usr) setUsers(await initUsers(usr));
+      })();
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   const persist = useCallback(async (key, setter, val) => {
